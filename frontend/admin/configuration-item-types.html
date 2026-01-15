@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Admin | Configuration Item Types</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="main-navbar"></div>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Configuration Item Types</h1>
+            <p class="text-muted">Definieer blauwdrukken voor assets (bijv. Laptop, Server).</p>
+        </div>
+        <button class="btn btn-success" onclick="openConfigurationItemTypeModal()">+ Nieuw Type</button>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Naam</th>
+                    <th>Omschrijving</th>
+                    <th>Gekoppelde Eigenschappen</th>
+                    <th class="text-end">Acties</th>
+                </tr>
+                </thead>
+                <tbody id="configurationItemTypeTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="configurationItemTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="configurationItemTypeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">CI Type Configureren</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="configurationItemTypeUuid">
+
+                    <div class="mb-3">
+                        <label class="form-label">Naam *</label>
+                        <input type="text" id="configurationItemTypeName" class="form-control" required placeholder="bijv. LAPTOP">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Omschrijving</label>
+                        <textarea id="configurationItemTypeDescription" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <hr>
+                    <h6>Eigenschappen uit Bibliotheek</h6>
+                    <p class="text-muted small">Selecteer welke velden bij dit type horen.</p>
+
+                    <div id="selectedPropertiesList" class="mb-3">
+                    </div>
+
+                    <div class="input-group">
+                        <select id="propertyDefinitionSelect" class="form-select">
+                            <option value="">Kies een eigenschap om toe te voegen...</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" onclick="addPropertyFromLibrary()">Toevoegen</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" class="btn btn-primary">Type Opslaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/navbar.js"></script>
+
+<script>
+    let configurationItemTypeModal;
+    let propertyLibrary = [];
+    let activeSelectedProperties = []; // Lijst van { propertyUuid, name, dataType, required }
+
+    async function loadConfigurationItemTypes() {
+        const types = await API.call('/configuration-item-types');
+        const tbody = document.getElementById('configurationItemTypeTableBody');
+        tbody.innerHTML = types.map(type => `
+            <tr>
+                <td><strong>${type.name}</strong></td>
+                <td><small>${type.description || '-'}</small></td>
+                <td>
+                    ${type.properties.map(prop => `
+                        <span class="badge border text-dark bg-light">
+                            ${prop.name} ${prop.required ? '<b class="text-danger">*</b>' : ''}
+                        </span>`).join(' ')}
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editConfigurationItemType('${type.uuid}')">Bewerken</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadPropertyLibrary() {
+        propertyLibrary = await API.call('/properties');
+        const select = document.getElementById('propertyDefinitionSelect');
+        propertyLibrary.forEach(prop => {
+            const option = document.createElement('option');
+            option.value = prop.uuid;
+            option.textContent = `${prop.name} (${prop.dataType})`;
+            select.appendChild(option);
+        });
+    }
+
+    function addPropertyFromLibrary() {
+        const uuid = document.getElementById('propertyDefinitionSelect').value;
+        if (!uuid || activeSelectedProperties.find(p => p.propertyUuid === uuid)) return;
+
+        const prop = propertyLibrary.find(p => p.uuid === uuid);
+        activeSelectedProperties.push({
+            propertyUuid: prop.uuid,
+            name: prop.name,
+            dataType: prop.dataType,
+            required: false
+        });
+        renderSelectedProperties();
+    }
+
+    function renderSelectedProperties() {
+        const container = document.getElementById('selectedPropertiesList');
+        container.innerHTML = activeSelectedProperties.map((prop, index) => `
+            <div class="d-flex align-items-center justify-content-between border p-2 mb-2 rounded bg-light">
+                <div>
+                    <strong>${prop.name}</strong> <small class="text-muted">(${prop.dataType})</small>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="req-${index}" ${prop.required ? 'checked' : ''}
+                               onchange="activeSelectedProperties[${index}].required = this.checked">
+                        <label class="form-check-label" for="req-${index}">Verplicht</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-danger" onclick="removeProperty(${index})">Verwijder</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function removeProperty(index) {
+        activeSelectedProperties.splice(index, 1);
+        renderSelectedProperties();
+    }
+
+    function openConfigurationItemTypeModal() {
+        document.getElementById('configurationItemTypeForm').reset();
+        document.getElementById('configurationItemTypeUuid').value = '';
+        activeSelectedProperties = [];
+        renderSelectedProperties();
+        configurationItemTypeModal.show();
+    }
+
+    async function editConfigurationItemType(uuid) {
+        const types = await API.call('/configuration-item-types');
+        const type = types.find(t => t.uuid === uuid);
+
+        document.getElementById('configurationItemTypeUuid').value = type.uuid;
+        document.getElementById('configurationItemTypeName').value = type.name;
+        document.getElementById('configurationItemTypeDescription').value = type.description;
+
+        activeSelectedProperties = [...type.properties];
+        renderSelectedProperties();
+        configurationItemTypeModal.show();
+    }
+
+    document.getElementById('configurationItemTypeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const uuid = document.getElementById('configurationItemTypeUuid').value;
+
+        const requestData = {
+            name: document.getElementById('configurationItemTypeName').value,
+            description: document.getElementById('configurationItemTypeDescription').value,
+            properties: activeSelectedProperties.map(p => ({
+                propertyUuid: p.propertyUuid,
+                required: p.required
+            }))
+        };
+
+        const method = uuid ? 'PUT' : 'POST';
+        const url = uuid ? `/configuration-item-types/${uuid}` : '/configuration-item-types';
+
+        await API.call(url, method, requestData);
+        configurationItemTypeModal.hide();
+        loadConfigurationItemTypes();
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        configurationItemTypeModal = new bootstrap.Modal(document.getElementById('configurationItemTypeModal'));
+        await loadPropertyLibrary();
+        loadConfigurationItemTypes();
+    });
+</script>
+</body>
+</html>

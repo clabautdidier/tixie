@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Admin | Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4>Tixie Admin Portaal</h4>
+                </div>
+                <div class="card-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label class="form-label">Gebruikersnaam</label>
+                            <input type="text" id="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Wachtwoord</label>
+                            <input type="password" id="password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Inloggen</button>
+                    </form>
+                    <div id="errorMsg" class="alert alert-danger mt-3 d-none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const userVal = document.getElementById('username').value;
+        const passVal = document.getElementById('password').value;
+        const errorDiv = document.getElementById('errorMsg');
+
+        try {
+            const data = await API.login(userVal, passVal);
+
+            localStorage.setItem('jwt_token', data.token);
+
+            // 3. Gebruik Auth om te bepalen waar we heen gaan
+            const user = Auth.getUser();
+            if (user && user.roles.includes('ROLE_ADMIN')) {
+                window.location.href = './index.html';
+            } else {
+                window.location.href = '../index.html';
+            }
+        } catch (err) {
+            errorDiv.textContent = err.message;
+            errorDiv.classList.remove('d-none');
+        }
+    });
+</script>
+</body>
+</html>

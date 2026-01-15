@@ -1,0 +1,67 @@
+# .gitignore for Tixie project
+# Root-level ignores for IntelliJ, Maven/Java, and frontend (Node)
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Maven / Java
+/target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+/.mvn/wrapper/maven-wrapper.jar
+
+# Generated sources
+/generated-sources/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Node / Frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.env
+node_modules/
+
+# IDEs
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.key
+*.pem
+*.jks
+
+# Database files
+*.db
+*.sqlite
+*.sql
+
+# Misc
+coverage/
+coverage-final.json
+
+# Local build outputs
+out/
+
+# Ignore compiled classes in any module
+**/*.class
+
+# Keep by accident exclusion for sensitive files if present
+# (uncomment to force ignoring other generated config files)
+# /src/main/resources/application-local.properties
+

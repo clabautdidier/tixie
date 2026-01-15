@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Admin | Location Types</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="main-navbar"></div>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Location Types</h1>
+        <button class="btn btn-success" onclick="openTypeModal()">+ Nieuw Type</button>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Naam</th>
+                    <th>Omschrijving</th>
+                    <th>Gekoppelde Eigenschappen</th>
+                    <th class="text-end">Acties</th>
+                </tr>
+                </thead>
+                <tbody id="typeTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="typeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="typeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Locatietype Configureren</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="typeUuid">
+                    <div class="mb-3">
+                        <label class="form-label">Naam *</label>
+                        <input type="text" id="typeName" class="form-control" required placeholder="bijv. ROOM">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Omschrijving</label>
+                        <textarea id="typeDescription" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <hr>
+                    <h6>Eigenschappen uit Library</h6>
+                    <div id="selectedProperties" class="mb-3">
+                    </div>
+
+                    <div class="input-group">
+                        <select id="propertyLibrarySelect" class="form-select">
+                            <option value="">Kies een eigenschap om toe te voegen...</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" onclick="addPropertyFromLibrary()">Toevoegen</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" class="btn btn-primary">Type Opslaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/navbar.js"></script>
+<script>
+    let typeModal;
+    let libraryProperties = [];
+    let selectedProps = []; // Array van {uuid, name, dataType, required}
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        typeModal = new bootstrap.Modal(document.getElementById('typeModal'));
+        await loadLibrary();
+        loadLocationTypes();
+    });
+
+    async function loadLibrary() {
+        libraryProperties = await API.call('/properties');
+        const select = document.getElementById('propertyLibrarySelect');
+        libraryProperties.forEach(p => {
+            select.innerHTML += `<option value="${p.uuid}">${p.name} (${p.dataType})</option>`;
+        });
+    }
+
+    async function loadLocationTypes() {
+        const types = await API.call('/location-types');
+        const tbody = document.getElementById('typeTableBody');
+        tbody.innerHTML = types.map(t => `
+            <tr>
+                <td><strong>${t.name}</strong></td>
+                <td><small>${t.description || '-'}</small></td>
+                <td>${t.properties.map(p => `
+                    <span class="badge border text-dark bg-light">
+                        ${p.name} ${p.required ? '<b class="text-danger">*</b>' : ''}
+                    </span>`).join(' ')}
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editType('${t.uuid}')">Bewerken</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function addPropertyFromLibrary() {
+        const uuid = document.getElementById('propertyLibrarySelect').value;
+        if (!uuid || selectedProps.find(p => p.propertyUuid === uuid)) return;
+
+        const prop = libraryProperties.find(p => p.uuid === uuid);
+        selectedProps.push({
+            propertyUuid: prop.uuid,
+            name: prop.name,
+            dataType: prop.dataType,
+            required: false
+        });
+        renderSelectedProps();
+    }
+
+    function renderSelectedProps() {
+        const container = document.getElementById('selectedProperties');
+        container.innerHTML = selectedProps.map((p, index) => `
+            <div class="d-flex align-items-center justify-content-between border p-2 mb-2 rounded bg-light">
+                <div>
+                    <strong>${p.name}</strong> <small class="text-muted">(${p.dataType})</small>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="req-${index}" ${p.required ? 'checked' : ''}
+                               onchange="selectedProps[${index}].required = this.checked">
+                        <label class="form-check-label" for="req-${index}">Verplicht</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-danger" onclick="removeProp(${index})">Verwijder</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function removeProp(index) {
+        selectedProps.splice(index, 1);
+        renderSelectedProps();
+    }
+
+    function openTypeModal() {
+        document.getElementById('typeForm').reset();
+        document.getElementById('typeUuid').value = '';
+        selectedProps = [];
+        renderSelectedProps();
+        typeModal.show();
+    }
+
+    async function editType(uuid) {
+        const types = await API.call('/location-types');
+        const t = types.find(x => x.uuid === uuid);
+        document.getElementById('typeUuid').value = t.uuid;
+        document.getElementById('typeName').value = t.name;
+        document.getElementById('typeDescription').value = t.description;
+        selectedProps = [...t.properties]; // DTO bevat propertyUuid, name, dataType, required
+        renderSelectedProps();
+        typeModal.show();
+    }
+
+    document.getElementById('typeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const uuid = document.getElementById('typeUuid').value;
+        const data = {
+            name: document.getElementById('typeName').value,
+            description: document.getElementById('typeDescription').value,
+            properties: selectedProps
+        };
+
+        const method = uuid ? 'PUT' : 'POST';
+        const url = uuid ? `/location-types/${uuid}` : '/location-types';
+        await API.call(url, method, data);
+        typeModal.hide();
+        loadLocationTypes();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Admin | Configuration Items</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../assets/css/tree-view.css">
+</head>
+<body>
+<div id="main-navbar"></div>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Configuration Items (CMDB)</h1>
+        <div class="d-flex gap-3">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary active" id="btnTableView" onclick="switchView('table')">
+                    <i class="bi bi-table"></i> Tabel
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="btnTreeView" onclick="switchView('tree')">
+                    <i class="bi bi-tree-fill"></i> Boomstructuur
+                </button>
+            </div>
+            <button class="btn btn-primary" onclick="openConfigurationItemModal()">+ Nieuw Item</button>
+        </div>
+    </div>
+
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Zoek op naam, type of status..." onkeyup="handleFilter()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select id="sortSelect" class="form-select" onchange="handleSort()">
+                        <option value="name_asc">Naam (A-Z)</option>
+                        <option value="name_desc">Naam (Z-A)</option>
+                        <option value="type_asc">Type (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="configurationItemErrorMessage" class="alert alert-danger d-none" role="alert"></div>
+
+    <div id="tableView" class="view-container">
+        <div class="card shadow">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Naam</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th class="text-end">Acties</th>
+                    </tr>
+                    </thead>
+                    <tbody id="configurationItemTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="treeView" class="view-container d-none">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div id="itemTreeContainer" class="tree-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="configurationItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="configurationItemForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Configuration Item Beheren</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="configurationItemUuid">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Naam *</label>
+                            <input type="text" id="configurationItemName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Type *</label>
+                            <select id="configurationItemTypeSelect" class="form-select" required onchange="handleTypeChange()">
+                                <option value="">Selecteer een type...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Parent Configuration Item (Relatie)</label>
+                            <select id="configurationItemParentSelect" class="form-select">
+                                <option value="">-- Geen Parent (Hoofditem) --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select id="configurationItemStatus" class="form-select">
+                                <option value="ACTIVE">Actief</option>
+                                <option value="IN_REPAIR">In Reparatie</option>
+                                <option value="RETIRED">Uitgefaseerd</option>
+                                <option value="STOCK">In Voorraad</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Locatie</label>
+                            <select id="configurationItemLocationSelect" class="form-select">
+                                <option value="">Geen locatie</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6 class="mb-3">Specificaties (Dynamisch)</h6>
+                    <div id="dynamicConfigurationFieldsContainer"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" class="btn btn-primary">Item Opslaan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/navbar.js"></script>
+
+<script>
+    let configurationItemModal;
+    let configurationItemTypes = [];
+    let allConfigurationItems = [];
+    let allTreeData = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        configurationItemModal = new bootstrap.Modal(document.getElementById('configurationItemModal'));
+        await loadInitialData();
+        await refreshAllData();
+    });
+
+    async function loadInitialData() {
+        configurationItemTypes = await API.call('/configuration-item-types');
+        const typeSelect = document.getElementById('configurationItemTypeSelect');
+        configurationItemTypes.forEach(type => {
+            typeSelect.innerHTML += `<option value="${type.uuid}">${type.name}</option>`;
+        });
+
+        const locations = await API.call('/locations');
+        const locationSelect = document.getElementById('configurationItemLocationSelect');
+        locations.forEach(loc => {
+            locationSelect.innerHTML += `<option value="${loc.uuid}">${loc.name}</option>`;
+        });
+    }
+
+    async function refreshAllData() {
+        allConfigurationItems = await API.call('/configuration-items');
+        allTreeData = await API.call('/configuration-items/tree');
+        handleSort();
+    }
+
+    function handleFilter() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+        const filteredTable = allConfigurationItems.filter(item =>
+            item.name.toLowerCase().includes(searchTerm) ||
+            item.configurationItemTypeName.toLowerCase().includes(searchTerm) ||
+            item.status.toLowerCase().includes(searchTerm)
+        );
+        renderTable(filteredTable);
+
+        const filteredTree = filterTreeNodes(JSON.parse(JSON.stringify(allTreeData)), searchTerm);
+        renderTree(filteredTree);
+    }
+
+    function filterTreeNodes(nodes, term) {
+        return nodes.filter(node => {
+            const matchesCurrent = node.name.toLowerCase().includes(term) ||
+                node.configurationItemTypeName.toLowerCase().includes(term);
+            if (node.children && node.children.length > 0) {
+                node.children = filterTreeNodes(node.children, term);
+            }
+            return matchesCurrent || (node.children && node.children.length > 0);
+        });
+    }
+
+    function handleSort() {
+        const sortValue = document.getElementById('sortSelect').value;
+        allConfigurationItems.sort((a, b) => {
+            if (sortValue === 'name_asc') return a.name.localeCompare(b.name);
+            if (sortValue === 'name_desc') return b.name.localeCompare(a.name);
+            if (sortValue === 'type_asc') return a.configurationItemTypeName.localeCompare(b.configurationItemTypeName);
+            return 0;
+        });
+        handleFilter();
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('configurationItemTableBody');
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td>
+                    <strong>${item.name}</strong><br>
+                    <small class="text-muted">${item.parentConfigurationItemName ? `↳ ${item.parentConfigurationItemName}` : 'Hoofditem'}</small>
+                </td>
+                <td><span class="badge bg-info text-dark">${item.configurationItemTypeName}</span></td>
+                <td><span class="badge bg-light text-dark border">${item.status}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editConfigurationItem('${item.uuid}')">Bewerken</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteConfigurationItem('${item.uuid}')">Verwijderen</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderTree(data) {
+        const container = document.getElementById('itemTreeContainer');
+        container.innerHTML = renderNodes(data);
+    }
+
+    function renderNodes(nodes) {
+        if (!nodes || nodes.length === 0) return '';
+        return `
+        <ul class="list-group list-group-flush ms-4 mt-1">
+            ${nodes.map(node => `
+                <li class="list-group-item border-0 py-1">
+                    <div class="tree-row">
+                        <div class="tree-content">
+                            <i class="bi ${node.children && node.children.length > 0 ? 'bi-cpu-fill' : 'bi-cpu'} me-2 text-muted"></i>
+                            <span class="fw-bold text-truncate">${node.name}</span>
+                            <small class="badge bg-light text-dark ms-2 border">${node.configurationItemTypeName}</small>
+                        </div>
+                        <div class="tree-actions opacity-75">
+                            <button class="btn btn-sm btn-link text-success p-0" onclick="openItemWithParent('${node.uuid}')">
+                                <i class="bi bi-plus-circle"></i>
+                            </button>
+                            <button class="btn btn-sm btn-link text-primary p-0" onclick="editConfigurationItem('${node.uuid}')">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${renderNodes(node.children)}
+                </li>
+            `).join('')}
+        </ul>`;
+    }
+
+    async function refreshParentDropdown(excludeUuid = null) {
+        const treeData = await API.call('/configuration-items/tree');
+        const parentSelect = document.getElementById('configurationItemParentSelect');
+        parentSelect.innerHTML = '<option value="">-- Geen Parent (Hoofditem) --</option>';
+        fillDropdownRecursive(treeData, parentSelect, 0, excludeUuid);
+    }
+
+    function fillDropdownRecursive(nodes, selectElement, level, excludeUuid) {
+        if (!nodes) return;
+        nodes.forEach(node => {
+            if (node.uuid !== excludeUuid) {
+                const option = document.createElement('option');
+                option.value = node.uuid;
+                const prefix = level > 0 ? '—'.repeat(level) + ' ' : '';
+                option.textContent = prefix + node.name;
+                selectElement.appendChild(option);
+                if (node.children) fillDropdownRecursive(node.children, selectElement, level + 1, excludeUuid);
+            }
+        });
+    }
+
+    function switchView(viewType) {
+        document.getElementById('tableView').classList.toggle('d-none', viewType !== 'table');
+        document.getElementById('treeView').classList.toggle('d-none', viewType !== 'tree');
+        document.getElementById('btnTableView').classList.toggle('active', viewType === 'table');
+        document.getElementById('btnTreeView').classList.toggle('active', viewType === 'tree');
+    }
+
+    async function handleTypeChange(existingValues = []) {
+        const typeUuid = document.getElementById('configurationItemTypeSelect').value;
+        const container = document.getElementById('dynamicConfigurationFieldsContainer');
+        container.innerHTML = '';
+        if (!typeUuid) return;
+
+        const type = configurationItemTypes.find(t => t.uuid === typeUuid);
+        if (!type || !type.properties.length) return;
+
+        type.properties.forEach(prop => {
+            const existing = existingValues.find(val => val.propertyDefinitionUuid === prop.propertyUuid);
+            const val = existing ? existing.value : '';
+            const inputId = `prop-${prop.propertyUuid}`;
+
+            let inputHtml = `<input type="text" class="form-control configuration-dynamic-input" id="${inputId}" data-property-uuid="${prop.propertyUuid}" value="${val}">`;
+            if (prop.dataType === 'BOOLEAN') {
+                inputHtml = `<input type="checkbox" class="form-check-input configuration-dynamic-input" id="${inputId}" data-property-uuid="${prop.propertyUuid}" ${val === 'true' ? 'checked' : ''}>`;
+            }
+
+            container.innerHTML += `<div class="mb-3"><label class="form-label">${prop.name}</label>${inputHtml}</div>`;
+        });
+    }
+
+    async function openConfigurationItemModal() {
+        document.getElementById('configurationItemForm').reset();
+        document.getElementById('configurationItemUuid').value = '';
+        document.getElementById('configurationItemTypeSelect').disabled = false;
+        document.getElementById('dynamicConfigurationFieldsContainer').innerHTML = '';
+        await refreshParentDropdown(null);
+        configurationItemModal.show();
+    }
+
+    async function openItemWithParent(parentUuid) {
+        await openConfigurationItemModal();
+        document.getElementById('configurationItemParentSelect').value = parentUuid;
+    }
+
+    async function editConfigurationItem(uuid) {
+        const item = await API.call(`/configuration-items/${uuid}`);
+        await refreshParentDropdown(item.uuid);
+        document.getElementById('configurationItemUuid').value = item.uuid;
+        document.getElementById('configurationItemName').value = item.name;
+        document.getElementById('configurationItemTypeSelect').value = item.configurationItemTypeUuid;
+        document.getElementById('configurationItemTypeSelect').disabled = true;
+        document.getElementById('configurationItemStatus').value = item.status;
+        document.getElementById('configurationItemLocationSelect').value = item.locationUuid || '';
+        document.getElementById('configurationItemParentSelect').value = item.parentConfigurationItemUuid || '';
+        await handleTypeChange(item.values);
+        configurationItemModal.show();
+    }
+
+    async function deleteConfigurationItem(uuid) {
+        if (confirm('Item verwijderen?')) {
+            await API.call(`/configuration-items/${uuid}`, 'DELETE');
+            await refreshAllData();
+        }
+    }
+
+    document.getElementById('configurationItemForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const values = [];
+        document.querySelectorAll('.configuration-dynamic-input').forEach(input => {
+            values.push({
+                propertyDefinitionUuid: input.dataset.propertyUuid,
+                value: input.type === 'checkbox' ? input.checked.toString() : input.value
+            });
+        });
+
+        const data = {
+            name: document.getElementById('configurationItemName').value,
+            configurationItemTypeUuid: document.getElementById('configurationItemTypeSelect').value,
+            status: document.getElementById('configurationItemStatus').value,
+            locationUuid: document.getElementById('configurationItemLocationSelect').value || null,
+            parentConfigurationItemUuid: document.getElementById('configurationItemParentSelect').value || null,
+            values: values
+        };
+
+        const uuid = document.getElementById('configurationItemUuid').value;
+        await API.call(uuid ? `/configuration-items/${uuid}` : '/configuration-items', uuid ? 'PUT' : 'POST', data);
+        configurationItemModal.hide();
+        await refreshAllData();
+    });
+</script>
+</body>
+</html>
