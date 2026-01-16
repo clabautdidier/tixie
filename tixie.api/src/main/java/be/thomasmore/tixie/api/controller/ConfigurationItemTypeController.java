@@ -1,7 +1,7 @@
 package be.thomasmore.tixie.api.controller;
 
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypeRequest;
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypeResponse;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypeRequestDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypeResponseDTO;
 import be.thomasmore.tixie.api.service.ConfigurationItemTypeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,20 +22,20 @@ public class ConfigurationItemTypeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConfigurationItemTypeResponse>> getAllTypes() {
+public ResponseEntity<List<ConfigurationItemTypeResponseDTO>> getAllTypes() {
         return ResponseEntity.ok(configurationItemTypeService.findAll());
     }
 
     @PostMapping
-    public ResponseEntity<ConfigurationItemTypeResponse> createType(@RequestBody ConfigurationItemTypeRequest request) {
+    public ResponseEntity<ConfigurationItemTypeResponseDTO> createType(@RequestBody ConfigurationItemTypeRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                              .body(configurationItemTypeService.create(request));
     }
 
     @PutMapping("/{uuid}")
-    public ResponseEntity<ConfigurationItemTypeResponse> updateType(
+    public ResponseEntity<ConfigurationItemTypeResponseDTO> updateType(
             @PathVariable String uuid, 
-            @RequestBody ConfigurationItemTypeRequest request) {
+            @RequestBody ConfigurationItemTypeRequestDTO request) {
         return ResponseEntity.ok(configurationItemTypeService.update(uuid, request));
     }
 }

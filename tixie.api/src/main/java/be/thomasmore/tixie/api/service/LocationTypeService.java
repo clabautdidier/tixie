@@ -1,9 +1,9 @@
 package be.thomasmore.tixie.api.service;
 
-import be.thomasmore.tixie.api.dto.LocationTypePropertyRequest;
-import be.thomasmore.tixie.api.dto.LocationTypePropertyResponse;
-import be.thomasmore.tixie.api.dto.LocationTypeRequest;
-import be.thomasmore.tixie.api.dto.LocationTypeResponse;
+import be.thomasmore.tixie.api.dto.LocationTypePropertyRequestDTO;
+import be.thomasmore.tixie.api.dto.LocationTypePropertyResponseDTO;
+import be.thomasmore.tixie.api.dto.LocationTypeRequestDTO;
+import be.thomasmore.tixie.api.dto.LocationTypeResponseDTO;
 import be.thomasmore.tixie.api.entity.LocationType;
 import be.thomasmore.tixie.api.entity.LocationTypeProperty;
 import be.thomasmore.tixie.api.entity.PropertyDefinition;
@@ -31,19 +31,19 @@ public class LocationTypeService {
         this.propertyDefinitionRepository = propertyDefinitionRepository;
     }
 
-    public List<LocationTypeResponse> findAll() {
+public List<LocationTypeResponseDTO> findAll() {
         return locationTypeRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    public LocationTypeResponse findByUuid(String uuid) {
+    public LocationTypeResponseDTO findByUuid(String uuid) {
         LocationType locationType = locationTypeRepository.findByUuid(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Locatie type niet gevonden"));
         return mapToResponse(locationType);
     }
 
-    public LocationTypeResponse create(LocationTypeRequest request) {
+    public LocationTypeResponseDTO create(LocationTypeRequestDTO request) {
         LocationType locationType = new LocationType();
         locationType.setName(request.name());
         locationType.setDescription(request.description());
@@ -54,7 +54,7 @@ public class LocationTypeService {
         return mapToResponse(savedLocationType);
     }
 
-    public LocationTypeResponse update(String uuid, LocationTypeRequest request) {
+    public LocationTypeResponseDTO update(String uuid, LocationTypeRequestDTO request) {
         LocationType locationType = locationTypeRepository.findByUuid(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Locatie type niet gevonden met UUID: " + uuid));
 
@@ -77,10 +77,10 @@ public class LocationTypeService {
         locationTypeRepository.delete(locationType);
     }
 
-    private void applyPropertyRequestsToEntity(LocationType locationType, List<LocationTypePropertyRequest> propertyRequests) {
+private void applyPropertyRequestsToEntity(LocationType locationType, List<LocationTypePropertyRequestDTO> propertyRequests) {
         if (propertyRequests == null) return;
 
-        for (LocationTypePropertyRequest propertyRequest : propertyRequests) {
+        for (LocationTypePropertyRequestDTO propertyRequest : propertyRequests) {
             PropertyDefinition propertyDefinition = propertyDefinitionRepository
                     .findByUuid(propertyRequest.propertyUuid())
                     .orElseThrow(() -> new EntityNotFoundException("Eigenschap definitie niet gevonden"));
@@ -94,18 +94,18 @@ public class LocationTypeService {
         }
     }
 
-    private LocationTypeResponse mapToResponse(LocationType locationType) {
-        List<LocationTypePropertyResponse> propertyResponses = locationType.getProperties().stream()
+private LocationTypeResponseDTO mapToResponse(LocationType locationType) {
+        List<LocationTypePropertyResponseDTO> propertyResponses = locationType.getProperties().stream()
                 .filter(property -> property.getPropertyDefinition().getTarget() == PropertyTarget.LOCATION ||
                         property.getPropertyDefinition().getTarget() == PropertyTarget.ALL)
-                .map(property -> new LocationTypePropertyResponse(
+                .map(property -> new LocationTypePropertyResponseDTO(
                         property.getPropertyDefinition().getUuid(),
                         property.getPropertyDefinition().getName(),
                         property.getPropertyDefinition().getDataType().name(),
                         property.isRequired()
                 )).collect(Collectors.toList());
 
-        return new LocationTypeResponse(
+        return new LocationTypeResponseDTO(
                 locationType.getUuid(),
                 locationType.getName(),
                 locationType.getDescription(),

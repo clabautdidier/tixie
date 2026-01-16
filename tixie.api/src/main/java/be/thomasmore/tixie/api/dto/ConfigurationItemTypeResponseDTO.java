@@ -2,9 +2,9 @@ package be.thomasmore.tixie.api.dto;
 
 import java.util.List;
 
-public record ConfigurationItemTypeResponse(
+public record ConfigurationItemTypeResponseDTO(
     String uuid,
     String name,
     String description,
-    List<ConfigurationItemTypePropertyResponse> properties
+    List<ConfigurationItemTypePropertyResponseDTO> properties
 ) {}

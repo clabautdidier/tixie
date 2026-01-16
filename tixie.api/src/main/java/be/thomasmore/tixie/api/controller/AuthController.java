@@ -1,7 +1,7 @@
 package be.thomasmore.tixie.api.controller;
 
-import be.thomasmore.tixie.api.dto.LoginRequest;
-import be.thomasmore.tixie.api.dto.JwtResponse;
+import be.thomasmore.tixie.api.dto.LoginRequestDTO;
+import be.thomasmore.tixie.api.dto.JwtResponseDTO;
 import be.thomasmore.tixie.api.security.JwtUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public JwtResponse authenticateUser(@RequestBody LoginRequest loginRequest) {
+public JwtResponseDTO authenticateUser(@RequestBody LoginRequestDTO loginRequest) {
         
         // 1. Authenticeer de gebruiker (Spring Security checkt hier het wachtwoord via CustomUserDetailsService)
         Authentication authentication = authenticationManager.authenticate(
@@ -45,6 +45,6 @@ public class AuthController {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        return new JwtResponse(jwt, userDetails.getUsername(), roles);
+        return new JwtResponseDTO(jwt, userDetails.getUsername(), roles);
     }
 }

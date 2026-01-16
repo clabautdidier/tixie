@@ -1,9 +1,9 @@
 package be.thomasmore.tixie.api.service;
 
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypePropertyRequest;
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypePropertyResponse;
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypeRequest;
-import be.thomasmore.tixie.api.dto.ConfigurationItemTypeResponse;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypePropertyRequestDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypePropertyResponseDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypeRequestDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemTypeResponseDTO;
 import be.thomasmore.tixie.api.entity.ConfigurationItemType;
 import be.thomasmore.tixie.api.entity.ConfigurationItemTypeProperty;
 import be.thomasmore.tixie.api.entity.PropertyDefinition;
@@ -29,13 +29,13 @@ public class ConfigurationItemTypeService {
         this.propertyDefinitionRepository = propertyDefinitionRepository;
     }
 
-    public List<ConfigurationItemTypeResponse> findAll() {
+public List<ConfigurationItemTypeResponseDTO> findAll() {
         return configurationItemTypeRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
-    public ConfigurationItemTypeResponse create(ConfigurationItemTypeRequest request) {
+    public ConfigurationItemTypeResponseDTO create(ConfigurationItemTypeRequestDTO request) {
         ConfigurationItemType configurationItemType = new ConfigurationItemType();
         configurationItemType.setName(request.name());
         configurationItemType.setDescription(request.description());
@@ -46,7 +46,7 @@ public class ConfigurationItemTypeService {
         return mapToResponse(savedType);
     }
 
-    public ConfigurationItemTypeResponse update(String uuid, ConfigurationItemTypeRequest request) {
+    public ConfigurationItemTypeResponseDTO update(String uuid, ConfigurationItemTypeRequestDTO request) {
         ConfigurationItemType configurationItemType = configurationItemTypeRepository.findByUuid(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("ConfigurationItemType niet gevonden met uuid: " + uuid));
 
@@ -61,8 +61,8 @@ public class ConfigurationItemTypeService {
         return mapToResponse(updatedType);
     }
 
-    private void updateProperties(ConfigurationItemType type, List<ConfigurationItemTypePropertyRequest> propertyRequests) {
-        for (ConfigurationItemTypePropertyRequest propertyRequest : propertyRequests) {
+private void updateProperties(ConfigurationItemType type, List<ConfigurationItemTypePropertyRequestDTO> propertyRequests) {
+        for (ConfigurationItemTypePropertyRequestDTO propertyRequest : propertyRequests) {
             PropertyDefinition propertyDefinition = propertyDefinitionRepository.findByUuid(propertyRequest.propertyUuid())
                     .orElseThrow(() -> new EntityNotFoundException("PropertyDefinition niet gevonden"));
 
@@ -75,16 +75,16 @@ public class ConfigurationItemTypeService {
         }
     }
 
-    private ConfigurationItemTypeResponse mapToResponse(ConfigurationItemType type) {
-        List<ConfigurationItemTypePropertyResponse> propertyResponses = type.getProperties().stream()
-                .map(prop -> new ConfigurationItemTypePropertyResponse(
+private ConfigurationItemTypeResponseDTO mapToResponse(ConfigurationItemType type) {
+        List<ConfigurationItemTypePropertyResponseDTO> propertyResponses = type.getProperties().stream()
+                .map(prop -> new ConfigurationItemTypePropertyResponseDTO(
                         prop.getPropertyDefinition().getUuid(),
                         prop.getPropertyDefinition().getName(),
                         prop.getPropertyDefinition().getDataType().name(),
                         prop.isRequired()
                 )).toList();
 
-        return new ConfigurationItemTypeResponse(
+        return new ConfigurationItemTypeResponseDTO(
                 type.getUuid(),
                 type.getName(),
                 type.getDescription(),
