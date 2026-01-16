@@ -1,6 +1,6 @@
 package be.thomasmore.tixie.api.dto;
 
-public record ConfigurationItemTypePropertyResponse(
+public record ConfigurationItemTypePropertyResponseDTO(
     String propertyUuid,
     String name,
     String dataType,

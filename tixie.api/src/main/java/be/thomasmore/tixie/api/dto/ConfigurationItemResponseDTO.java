@@ -2,7 +2,7 @@ package be.thomasmore.tixie.api.dto;
 
 import java.util.List;
 
-public record ConfigurationItemResponse(
+public record ConfigurationItemResponseDTO(
     String uuid,
     String name,
     String configurationItemTypeUuid,
@@ -11,5 +11,5 @@ public record ConfigurationItemResponse(
     String parentConfigurationItemUuid,
     String parentConfigurationItemName,
     String locationUuid,
-    List<ConfigurationItemValueResponse> values
+    List<ConfigurationItemValueResponseDTO> values
 ) {}

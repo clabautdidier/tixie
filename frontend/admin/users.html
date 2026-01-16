@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <title>Tixie Admin | User Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .error-message { display: none; }
+        /* Visuele indicatie voor verplichte velden */
+        .form-label[required]::after {
+            content: " *";
+            color: red;
+        }
+    </style>
 </head>
 <body>
 <div id="main-navbar"></div>
@@ -17,8 +25,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Gebruikersbeheer</h1>
         <div class="d-flex gap-2">
-            <input type="text" id="searchInput" class="form-control" placeholder="Zoek op naam, email of rol..." style="width: 300px;">
-            <button class="btn btn-success" onclick="createUser()">Nieuwe Gebruiker</button>
+            <input type="text" id="searchInput" class="form-control" placeholder="Zoek op naam..." style="width: 300px;">
+            <button class="btn btn-success" onclick="prepareCreateModal()">Nieuwe Gebruiker</button>
         </div>
     </div>
 
@@ -31,7 +39,7 @@
                     <th style="cursor: pointer" onclick="setSort('fullName')">Naam <span id="sort-fullName"></span></th>
                     <th>Rollen</th>
                     <th>Status</th>
-                    <th style="cursor: pointer" onclick="setSort('managerName')">Manager <span id="sort-managerName"></span></th>
+                    <th>Manager</th>
                     <th>Acties</th>
                 </tr>
                 </thead>
@@ -44,57 +52,59 @@
 <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="userForm" novalidate> <div class="modal-header">
-                <input type="hidden" id="userId">
-                <h5 class="modal-title" id="modalTitle">Nieuwe Gebruiker Toevoegen</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+            <form id="userForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Gebruiker</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
                 <div class="modal-body">
+                    <div id="userModalError" class="alert alert-danger error-message"></div>
+
+                    <input type="hidden" id="userId">
+
                     <div class="mb-3">
-                        <label class="form-label">Gebruikersnaam *</label>
+                        <label class="form-label" required>Gebruikersnaam</label>
                         <input type="text" id="newUsername" class="form-control" required>
-                        <div class="invalid-feedback">Gebruikersnaam is verplicht.</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Email *</label>
+                        <label class="form-label" required>Email</label>
                         <input type="email" id="newEmail" class="form-control" required>
-                        <div class="invalid-feedback">Voer een geldig e-mailadres in.</div>
                     </div>
 
-                    <div class="row">
-                        <small id="passwordHelp" class="text-muted d-none">Laat leeg om het huidige wachtwoord te behouden.</small>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Wachtwoord *</label>
-                            <input type="password" id="newPassword" class="form-control" required minlength="6">
-                            <div class="invalid-feedback">Minimaal 6 tekens vereist.</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Bevestig Wachtwoord *</label>
-                            <input type="password" id="confirmPassword" class="form-control" required>
-                            <div id="passwordMismatchFeedback" class="invalid-feedback">Wachtwoorden komen niet overeen.</div>
-                        </div>
-
-                    </div>
                     <div class="mb-3">
                         <label class="form-label">Volledige Naam</label>
                         <input type="text" id="newFullName" class="form-control">
                     </div>
+
+                    <div id="passwordFieldsSection">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" required>Wachtwoord</label>
+                                <input type="password" id="newPassword" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" required>Bevestig Wachtwoord</label>
+                                <input type="password" id="confirmPassword" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Manager</label>
                         <select id="newManager" class="form-select">
                             <option value="">Geen Manager</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Rollen *</label>
+                        <label class="form-label" required>Rollen</label>
                         <select id="newRoles" class="form-select" multiple size="4" required>
-                            <option value="ROLE_USER">USER (Standaard)</option>
-                            <option value="ROLE_ADMIN">ADMIN (Beheer)</option>
+                            <option value="ROLE_USER">USER</option>
+                            <option value="ROLE_ADMIN">ADMIN</option>
                             <option value="ROLE_CONFIGADMIN">CONFIG ADMIN</option>
                             <option value="ROLE_CONFIGLOCATIONADMIN">LOCATION ADMIN</option>
                         </select>
-                        <small class="text-muted">Houd Ctrl (of Cmd) ingedrukt om meerdere te kiezen.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -106,67 +116,221 @@
     </div>
 </div>
 
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="passwordForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title">Wachtwoord Wijzigen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="passwordModalError" class="alert alert-danger error-message"></div>
+
+                    <input type="hidden" id="passwordUserId">
+                    <p>Wachtwoord wijzigen voor: <strong id="passwordDisplayUser"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label" required>Nieuw Wachtwoord</label>
+                        <input type="password" id="modalPassword" class="form-control" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" required>Bevestig Wachtwoord</label>
+                        <input type="password" id="modalPasswordConfirm" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning">Wijzigen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Beveiliging: Check of de gebruiker admin is
     Auth.checkAuth();
     if (!Auth.hasRole('ROLE_ADMIN')) Auth.logout();
 
-    let allUsers = []; // De volledige lijst van de API
+    let allUsers = [];
     let currentSort = { field: 'username', direction: 'asc' };
+    let userModal;
+    let passwordModal;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        loadUsers();
+    });
+
+    function showError(elementId, message) {
+        const errorElement = document.getElementById(elementId);
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    function clearErrors() {
+        document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
+    async function loadUsers() {
+        try {
+            allUsers = await API.call('/users');
+            renderTable();
+        } catch (e) { console.error("Laden mislukt", e); }
+    }
 
     function renderTable() {
         const tbody = document.getElementById('userTableBody');
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = allUsers.filter(u => u.username.toLowerCase().includes(search) || u.email.toLowerCase().includes(search));
 
-        // 1. Filteren
-        let filtered = allUsers.filter(user => {
-            return user.username.toLowerCase().includes(searchTerm) ||
-                (user.fullName && user.fullName.toLowerCase().includes(searchTerm)) ||
-                user.email.toLowerCase().includes(searchTerm) ||
-                user.roles.some(r => r.toLowerCase().includes(searchTerm)) ||
-                (user.managerName && user.managerName.includes(searchTerm));
-        });
-
-        // 2. Sorteren
-        filtered.sort((a, b) => {
-            let valA = (a[currentSort.field] || "").toLowerCase();
-            let valB = (b[currentSort.field] || "").toLowerCase();
-
-            if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
-
-        // 3. Tekenen
-        tbody.innerHTML = '';
-        filtered.forEach(user => {
-            const row = `
+        tbody.innerHTML = filtered.map(user => `
             <tr>
-                <td><strong>${user.username}</strong></td>
+                <td>${user.username}</td>
                 <td>${user.fullName || '-'}</td>
                 <td>${user.roles.map(r => `<span class="badge bg-info text-dark me-1">${r.replace('ROLE_', '')}</span>`).join('')}</td>
+                <td><span class="badge ${user.active ? 'bg-success' : 'bg-danger'}">${user.active ? 'Actief' : 'Inactief'}</span></td>
+                <td>${user.managerName || '-'}</td>
                 <td>
-                    <span class="badge ${user.active ? 'bg-success' : 'bg-danger'}">
-                        ${user.active ? 'Actief' : 'Inactief'}
-                    </span>
-                </td>
-                <td>${user.managerName || '<span class="text-muted">Geen</span>'}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-2" onclick="editUser('${user.uuid}')">Bewerken</button>
-                    <button class="btn btn-sm ${user.active ? 'btn-outline-danger' : 'btn-outline-success'}"
-                            onclick="toggleStatus('${user.uuid}')">
-                        ${user.active ? 'Deactiveren' : 'Activeren'}
-                    </button>
+                    <button class="btn btn-sm btn-primary me-1" onclick="editUser('${user.uuid}')">Bewerken</button>
+                    <button class="btn btn-sm btn-warning" onclick="showPasswordModal('${user.uuid}')">Paswoord</button>
                 </td>
             </tr>
-        `;
-            tbody.innerHTML += row;
-        });
-
-        updateSortIcons();
+        `).join('');
     }
 
-    // Sortering instellen
+    async function fillManagerDropdown() {
+        const select = document.getElementById('newManager');
+        const users = await API.call('/users');
+        select.innerHTML = '<option value="">Geen Manager</option>';
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.uuid;
+            opt.textContent = u.username;
+            select.appendChild(opt);
+        });
+    }
+
+    async function prepareCreateModal() {
+        clearErrors();
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('modalTitle').innerText = "Nieuwe Gebruiker";
+        document.getElementById('newUsername').disabled = false;
+        document.getElementById('passwordFieldsSection').classList.remove('d-none');
+        await fillManagerDropdown();
+        userModal.show();
+    }
+
+    async function editUser(uuid) {
+        clearErrors();
+        try {
+            const user = await API.call(`/users/${uuid}`);
+            document.getElementById('userId').value = user.uuid;
+            document.getElementById('newUsername').value = user.username;
+            document.getElementById('newUsername').disabled = true;
+            document.getElementById('newEmail').value = user.email;
+            document.getElementById('newFullName').value = user.fullName;
+
+            await fillManagerDropdown();
+            document.getElementById('newManager').value = user.managerUuid || "";
+            document.getElementById('passwordFieldsSection').classList.add('d-none');
+
+            const roleSelect = document.getElementById('newRoles');
+            Array.from(roleSelect.options).forEach(opt => opt.selected = user.roles.includes(opt.value));
+
+            userModal.show();
+        } catch (e) { console.error(e); }
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const userId = document.getElementById('userId').value;
+        const username = document.getElementById('newUsername');
+        const email = document.getElementById('newEmail');
+        const roles = document.getElementById('newRoles');
+        const passwordValue = document.getElementById('newPassword');
+        const confirmValue = document.getElementById('confirmPassword');
+
+        let hasError = false;
+
+        // Validatie verplichte velden
+        if (!username.value) { username.classList.add('is-invalid'); hasError = true; }
+        if (!email.value) { email.classList.add('is-invalid'); hasError = true; }
+        if (roles.selectedOptions.length === 0) { roles.classList.add('is-invalid'); hasError = true; }
+
+        if (!userId) {
+            if (!passwordValue.value) { passwordValue.classList.add('is-invalid'); hasError = true; }
+            if (passwordValue.value !== confirmValue.value) {
+                confirmValue.classList.add('is-invalid');
+                showError('userModalError', "Wachtwoorden komen niet overeen!");
+                hasError = true;
+            }
+        }
+
+        if (hasError) {
+            if (!document.getElementById('userModalError').textContent) {
+                showError('userModalError', "Vul alle verplichte velden in.");
+            }
+            return;
+        }
+
+        const userData = {
+            username: username.value,
+            email: email.value,
+            fullName: document.getElementById('newFullName').value,
+            roles: Array.from(roles.selectedOptions).map(o => o.value),
+            managerUuid: document.getElementById('newManager').value || null
+        };
+        if (!userId) userData.password = passwordValue.value;
+
+        try {
+            await API.call(userId ? `/users/${userId}` : '/users', userId ? 'PUT' : 'POST', userData);
+            userModal.hide();
+            loadUsers();
+        } catch (err) {
+            showError('userModalError', "Fout bij opslaan: " + err.message);
+        }
+    });
+
+    async function showPasswordModal(uuid) {
+        clearErrors();
+        const user = await API.call(`/users/${uuid}`);
+        document.getElementById('passwordUserId').value = user.uuid;
+        document.getElementById('passwordDisplayUser').innerText = user.username;
+        document.getElementById('modalPassword').value = '';
+        document.getElementById('modalPasswordConfirm').value = '';
+        passwordModal.show();
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const p1 = document.getElementById('modalPassword');
+        const p2 = document.getElementById('modalPasswordConfirm');
+
+        if (!p1.value || !p2.value) {
+            showError('passwordModalError', "Beide velden zijn verplicht.");
+            if(!p1.value) p1.classList.add('is-invalid');
+            if(!p2.value) p2.classList.add('is-invalid');
+            return;
+        }
+
+        if (p1.value !== p2.value) {
+            showError('passwordModalError', "Wachtwoorden matchen niet.");
+            p2.classList.add('is-invalid');
+            return;
+        }
+
+        try {
+            await API.call(`/users/${document.getElementById('passwordUserId').value}/password`, 'PUT', { password: p1.value });
+            passwordModal.hide();
+        } catch (err) { showError('passwordModalError', err.message); }
+    });
+
     function setSort(field) {
         if (currentSort.field === field) {
             currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
@@ -176,179 +340,7 @@
         }
         renderTable();
     }
-
-    // Iconen updaten (simpele tekst-pijltjes)
-    function updateSortIcons() {
-        ['username', 'fullName', 'managerName'].forEach(field => {
-            const el = document.getElementById(`sort-${field}`);
-            if (currentSort.field === field) {
-                el.innerHTML = currentSort.direction === 'asc' ? '▴' : '▾';
-            } else {
-                el.innerHTML = '';
-            }
-        });
-    }
-
-    // Event listener voor de zoekbalk
     document.getElementById('searchInput').addEventListener('input', renderTable);
-
-    // Pas de bestaande loadUsers aan
-    async function loadUsers() {
-        try {
-            allUsers = await API.call('/users');
-            renderTable(); // We splitsen het ophalen en het tekenen
-        } catch (error) {
-            console.error("Laden mislukt:", error);
-        }
-    }
-
-    let userModal;
-
-    // Initialiseer de modal bij het laden van de pagina
-    document.addEventListener('DOMContentLoaded', () => {
-        userModal = new bootstrap.Modal(document.getElementById('userModal'));
-    });
-
-    async function showCreateModal() {
-        // 1. Haal alle gebruikers op om als mogelijke manager te dienen
-        try {
-            const users = await API.call('/users');
-            const select = document.getElementById('newManager');
-
-            // Reset select maar hou de 'Geen Manager' optie
-            select.innerHTML = '<option value="">Geen Manager</option>';
-
-            users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.uuid;
-                opt.textContent = u.username;
-                select.appendChild(opt);
-            });
-
-            userModal.show();
-        } catch (error) {
-            alert("Kon managerlijst niet laden");
-        }
-    }
-
-    document.getElementById('userForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const password = document.getElementById('newPassword');
-        const confirm = document.getElementById('confirmPassword');
-        const passwordMismatchFeedback = document.getElementById('passwordMismatchFeedback');
-
-        const id = document.getElementById('userId').value;
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `/users/${id}` : '/users';
-
-        // 1. Reset custom validatie
-        confirm.setCustomValidity("");
-
-        // 2. Check wachtwoord match
-        if (password.value !== confirm.value) {
-            confirm.setCustomValidity("Invalid"); // Dit triggert de :invalid pseudo-class
-        }
-
-        // 3. Check alle validaties (HTML5 + onze custom check)
-        if (!form.checkValidity()) {
-            e.stopPropagation();
-            form.classList.add('was-validated'); // Bootstrap class om kleuren te tonen
-            return;
-        }
-
-        // 4. Als alles OK is, data verzamelen en verzenden
-        const roleSelect = document.getElementById('newRoles');
-        const selectedRoles = Array.from(roleSelect.selectedOptions).map(opt => opt.value);
-
-        const userData = {
-            username: document.getElementById('newUsername').value,
-            email: document.getElementById('newEmail').value,
-            password: password.value,
-            fullName: document.getElementById('newFullName').value,
-            roles: selectedRoles,
-            managerUuid: document.getElementById('newManager').value || null
-        };
-
-        try {
-            await API.call(url, method, userData);
-            userModal.hide();
-            form.reset();
-            form.classList.remove('was-validated');
-            loadUsers();
-        } catch (error) {
-            // Backend fout (bijv. username bestaat al) tonen bovenaan het formulier
-            alert("Fout van de server: " + error.message);
-        }
-    });
-
-    async function toggleStatus(userId) {
-        if (!confirm("Weet je zeker dat je de status van deze gebruiker wilt wijzigen?")) return;
-
-        try {
-            // We gebruiken PATCH omdat we slechts een deel van het object wijzigen
-            await API.call(`/users/${userId}/toggle-status`, 'PATCH');
-            loadUsers(); // De tabel opnieuw laden om de wijziging te zien
-        } catch (error) {
-            alert("Fout bij het wijzigen van status: " + error.message);
-        }
-    }
-
-    async function createUser() {
-        // Modal voorbereiden
-        document.getElementById('modalTitle').innerText = "Gebruiker Aanmaken";
-        document.getElementById('userId').value = null;
-        document.getElementById('newUsername').value = '';
-        document.getElementById('newUsername').disabled = false; // Username meestal niet wijzigbaar
-        document.getElementById('newEmail').value = '';
-        document.getElementById('newFullName').value = '';
-        document.getElementById('newPassword').required = true; // Niet verplicht bij edit
-        document.getElementById('confirmPassword').required = true; // Niet verplicht bij edit
-        document.getElementById('passwordHelp').classList.add('d-none');
-
-        // Manager laden en selecteren
-        await showCreateModal(false); // Helper functie om lijst te vullen zonder direct te openen
-        document.getElementById('newManager').value = '';
-
-        // Rollen selecteren
-        const roleSelect = document.getElementById('newRoles');
-        Array.from(roleSelect.options).forEach(opt => {
-            opt.selected = false;
-        });
-
-        userModal.show();
-    }
-
-    async function editUser(userId) {
-        try {
-            const user = await API.call(`/users/${userId}`); // Zorg dat je een GET /users/{id} endpoint hebt
-
-            // Modal voorbereiden
-            document.getElementById('modalTitle').innerText = "Gebruiker Bewerken";
-            document.getElementById('userId').value = user.uuid;
-            document.getElementById('newUsername').value = user.username;
-            document.getElementById('newUsername').disabled = true;
-            document.getElementById('newEmail').value = user.email;
-            document.getElementById('newFullName').value = user.fullName;
-            document.getElementById('newManager').value = user.managerUuid || "";
-
-            // Manager laden en selecteren
-            await showCreateModal(false); // Helper functie om lijst te vullen zonder direct te openen
-
-            // Rollen selecteren
-            const roleSelect = document.getElementById('newRoles');
-            Array.from(roleSelect.options).forEach(opt => {
-                opt.selected = user.roles.includes(opt.value);
-            });
-
-            userModal.show();
-        } catch (error) {
-            alert("Kon gebruiker niet laden: " + error.message);
-        }
-    }
-
-    // Start het laden
-    loadUsers();
 </script>
 </body>
 </html>

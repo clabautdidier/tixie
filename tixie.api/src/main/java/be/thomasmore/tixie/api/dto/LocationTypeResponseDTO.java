@@ -5,9 +5,9 @@ import java.util.List;
 /**
  * DTO voor het versturen van LocationType gegevens naar de frontend.
  */
-public record LocationTypeResponse(
+public record LocationTypeResponseDTO(
     String uuid,
     String name,
     String description,
-    List<LocationTypePropertyResponse> properties
+    List<LocationTypePropertyResponseDTO> properties
 ) {}

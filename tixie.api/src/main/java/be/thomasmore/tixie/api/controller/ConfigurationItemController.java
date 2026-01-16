@@ -1,9 +1,9 @@
 package be.thomasmore.tixie.api.controller;
 
-import be.thomasmore.tixie.api.dto.ConfigurationItemNodeResponse;
-import be.thomasmore.tixie.api.dto.ConfigurationItemRequest;
-import be.thomasmore.tixie.api.dto.ConfigurationItemResponse;
-import be.thomasmore.tixie.api.dto.LocationNodeResponse;
+import be.thomasmore.tixie.api.dto.ConfigurationItemNodeResponseDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemRequestDTO;
+import be.thomasmore.tixie.api.dto.ConfigurationItemResponseDTO;
+import be.thomasmore.tixie.api.dto.LocationNodeResponseDTO;
 import be.thomasmore.tixie.api.service.ConfigurationItemService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,8 +28,8 @@ public class ConfigurationItemController {
      * @return Een lijst met ConfigurationItemResponse objecten.
      */
     @GetMapping
-    public ResponseEntity<List<ConfigurationItemResponse>> getAllConfigurationItems() {
-        List<ConfigurationItemResponse> configurationItems = configurationItemService.findAll();
+public ResponseEntity<List<ConfigurationItemResponseDTO>> getAllConfigurationItems() {
+        List<ConfigurationItemResponseDTO> configurationItems = configurationItemService.findAll();
         return ResponseEntity.ok(configurationItems);
     }
 
@@ -39,9 +39,9 @@ public class ConfigurationItemController {
      * @return Het aangemaakte item als ConfigurationItemResponse.
      */
     @PostMapping
-    public ResponseEntity<ConfigurationItemResponse> createConfigurationItem(
-            @RequestBody ConfigurationItemRequest configurationItemRequest) {
-        ConfigurationItemResponse createdItem = configurationItemService.createConfigurationItem(configurationItemRequest);
+public ResponseEntity<ConfigurationItemResponseDTO> createConfigurationItem(
+            @RequestBody ConfigurationItemRequestDTO configurationItemRequest) {
+        ConfigurationItemResponseDTO createdItem = configurationItemService.createConfigurationItem(configurationItemRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdItem);
     }
 
@@ -51,13 +51,13 @@ public class ConfigurationItemController {
      * @return Het gevraagde item.
      */
     @GetMapping("/{uuid}")
-    public ResponseEntity<ConfigurationItemResponse> getConfigurationItemByUuid(@PathVariable String uuid) {
-        ConfigurationItemResponse configurationItem = configurationItemService.findByUuid(uuid);
+public ResponseEntity<ConfigurationItemResponseDTO> getConfigurationItemByUuid(@PathVariable String uuid) {
+        ConfigurationItemResponseDTO configurationItem = configurationItemService.findByUuid(uuid);
         return ResponseEntity.ok(configurationItem);
     }
 
     @GetMapping("/tree")
-    public List<ConfigurationItemNodeResponse> getTree() {
+    public List<ConfigurationItemNodeResponseDTO> getTree() {
         return configurationItemService.getConfigurationItemTree();
     }
 
@@ -68,10 +68,10 @@ public class ConfigurationItemController {
      * @return Het bijgewerkte item.
      */
     @PutMapping("/{uuid}")
-    public ResponseEntity<ConfigurationItemResponse> updateConfigurationItem(
+public ResponseEntity<ConfigurationItemResponseDTO> updateConfigurationItem(
             @PathVariable String uuid,
-            @RequestBody ConfigurationItemRequest configurationItemRequest) {
-        ConfigurationItemResponse updatedItem = configurationItemService.updateConfigurationItem(uuid, configurationItemRequest);
+            @RequestBody ConfigurationItemRequestDTO configurationItemRequest) {
+        ConfigurationItemResponseDTO updatedItem = configurationItemService.updateConfigurationItem(uuid, configurationItemRequest);
         return ResponseEntity.ok(updatedItem);
     }
 

@@ -6,6 +6,8 @@
 *.iml
 *.iws
 *.ipr
+.project
+.settings
 
 # Maven / Java
 /target/

@@ -1,6 +1,6 @@
 package be.thomasmore.tixie.api.service;
 
-import be.thomasmore.tixie.api.dto.LocationNodeResponse;
+import be.thomasmore.tixie.api.dto.LocationNodeResponseDTO;
 import be.thomasmore.tixie.api.dto.LocationRequestDTO;
 import be.thomasmore.tixie.api.dto.LocationResponseDTO;
 import be.thomasmore.tixie.api.dto.LocationValueDTO;
@@ -47,7 +47,7 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    public List<LocationNodeResponse> getLocationTree() {
+    public List<LocationNodeResponseDTO> getLocationTree() {
         List<Location> rootLocations = locationRepository.findAllByParentIdIsNull();
         return rootLocations.stream()
                 .map(this::mapToNode)
@@ -127,12 +127,12 @@ public class LocationService {
         return false;
     }
 
-    private LocationNodeResponse mapToNode(Location location) {
-        List<LocationNodeResponse> children = location.getChildren().stream()
+private LocationNodeResponseDTO mapToNode(Location location) {
+        List<LocationNodeResponseDTO> children = location.getChildren().stream()
                 .map(this::mapToNode)
                 .toList();
 
-        return new LocationNodeResponse(
+        return new LocationNodeResponseDTO(
                 location.getUuid(),
                 location.getName(),
                 location.getLocationType() != null ? location.getLocationType().getName() : "Onbekend",

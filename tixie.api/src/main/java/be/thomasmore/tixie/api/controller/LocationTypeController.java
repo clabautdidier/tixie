@@ -1,7 +1,7 @@
 package be.thomasmore.tixie.api.controller;
 
-import be.thomasmore.tixie.api.dto.LocationTypeRequest;
-import be.thomasmore.tixie.api.dto.LocationTypeResponse;
+import be.thomasmore.tixie.api.dto.LocationTypeRequestDTO;
+import be.thomasmore.tixie.api.dto.LocationTypeResponseDTO;
 import be.thomasmore.tixie.api.service.LocationTypeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,24 +20,24 @@ public class LocationTypeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<LocationTypeResponse>> getAll() {
+public ResponseEntity<List<LocationTypeResponseDTO>> getAll() {
         return ResponseEntity.ok(locationTypeService.findAll());
     }
 
     @GetMapping("/{uuid}")
-    public ResponseEntity<LocationTypeResponse> getByUuid(@PathVariable String uuid) {
+    public ResponseEntity<LocationTypeResponseDTO> getByUuid(@PathVariable String uuid) {
         return ResponseEntity.ok(locationTypeService.findByUuid(uuid));
     }
 
     @PostMapping
-    public ResponseEntity<LocationTypeResponse> create(@RequestBody LocationTypeRequest request) {
+    public ResponseEntity<LocationTypeResponseDTO> create(@RequestBody LocationTypeRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(locationTypeService.create(request));
     }
 
     @PutMapping("/{uuid}")
-    public ResponseEntity<LocationTypeResponse> update(
+    public ResponseEntity<LocationTypeResponseDTO> update(
             @PathVariable String uuid, 
-            @RequestBody LocationTypeRequest request) {
+            @RequestBody LocationTypeRequestDTO request) {
         return ResponseEntity.ok(locationTypeService.update(uuid, request));
     }
 

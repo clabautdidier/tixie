@@ -36,7 +36,7 @@ public class ConfigurationItemService {
      * Bouwt de volledige hiërarchische boomstructuur van alle Configuration Items op.
      */
     @Transactional(readOnly = true)
-    public List<ConfigurationItemNodeResponse> getConfigurationItemTree() {
+    public List<ConfigurationItemNodeResponseDTO> getConfigurationItemTree() {
         // Haal de hoofditems op (items zonder parent CI)
         List<ConfigurationItem> rootConfigurationItems = configurationItemRepository.findAllByParentConfigurationItemIdIsNull();
 
@@ -45,7 +45,7 @@ public class ConfigurationItemService {
                 .toList();
     }
 
-    public ConfigurationItemResponse createConfigurationItem(ConfigurationItemRequest request) {
+    public ConfigurationItemResponseDTO createConfigurationItem(ConfigurationItemRequestDTO request) {
         ConfigurationItemType configurationItemType = configurationItemTypeRepository
                 .findByUuid(request.configurationItemTypeUuid())
                 .orElseThrow(() -> new EntityNotFoundException("Configuration Item Type niet gevonden"));
@@ -68,7 +68,7 @@ public class ConfigurationItemService {
         return mapToResponse(savedConfigurationItem);
     }
 
-    public ConfigurationItemResponse updateConfigurationItem(String uuid, ConfigurationItemRequest request) {
+    public ConfigurationItemResponseDTO updateConfigurationItem(String uuid, ConfigurationItemRequestDTO request) {
         ConfigurationItem configurationItem = configurationItemRepository.findByUuid(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Configuration Item niet gevonden: " + uuid));
 
@@ -124,9 +124,9 @@ public class ConfigurationItemService {
         return false;
     }
 
-    private void applyValuesToEntity(ConfigurationItem item, List<ConfigurationItemValueRequest> valueRequests) {
+    private void applyValuesToEntity(ConfigurationItem item, List<ConfigurationItemValueRequestDTO> valueRequests) {
         if (valueRequests == null) return;
-        for (ConfigurationItemValueRequest valueRequest : valueRequests) {
+        for (ConfigurationItemValueRequestDTO valueRequest : valueRequests) {
             PropertyDefinition propertyDefinition = propertyDefinitionRepository
                     .findByUuid(valueRequest.propertyDefinitionUuid())
                     .orElseThrow(() -> new EntityNotFoundException("Property Definition niet gevonden"));
@@ -139,12 +139,12 @@ public class ConfigurationItemService {
         }
     }
 
-    private ConfigurationItemNodeResponse mapToNodeResponse(ConfigurationItem configurationItem) {
-        List<ConfigurationItemNodeResponse> children = configurationItem.getChildConfigurationItems().stream()
+private ConfigurationItemNodeResponseDTO mapToNodeResponse(ConfigurationItem configurationItem) {
+        List<ConfigurationItemNodeResponseDTO> children = configurationItem.getChildConfigurationItems().stream()
                 .map(this::mapToNodeResponse)
                 .toList();
 
-        return new ConfigurationItemNodeResponse(
+        return new ConfigurationItemNodeResponseDTO(
                 configurationItem.getUuid(),
                 configurationItem.getName(),
                 configurationItem.getConfigurationItemType() != null ? configurationItem.getConfigurationItemType().getName() : "Onbekend",
@@ -152,19 +152,19 @@ public class ConfigurationItemService {
         );
     }
 
-    private ConfigurationItemResponse mapToResponse(ConfigurationItem item) {
+    private ConfigurationItemResponseDTO mapToResponse(ConfigurationItem item) {
         String parentUuid = (item.getParentConfigurationItem() != null) ? item.getParentConfigurationItem().getUuid() : null;
         String parentName = (item.getParentConfigurationItem() != null) ? item.getParentConfigurationItem().getName() : null;
 
-        List<ConfigurationItemValueResponse> valueResponses = item.getValues().stream()
-                .map(val -> new ConfigurationItemValueResponse(
+List<ConfigurationItemValueResponseDTO> valueResponses = item.getValues().stream()
+                .map(val -> new ConfigurationItemValueResponseDTO(
                         val.getPropertyDefinition().getUuid(),
                         val.getPropertyDefinition().getName(),
                         val.getPropertyDefinition().getDataType().name(),
                         val.getValue()
                 )).toList();
 
-        return new ConfigurationItemResponse(
+        return new ConfigurationItemResponseDTO(
                 item.getUuid(),
                 item.getName(),
                 item.getConfigurationItemType().getUuid(),
@@ -177,11 +177,11 @@ public class ConfigurationItemService {
         );
     }
 
-    public List<ConfigurationItemResponse> findAll() {
+public List<ConfigurationItemResponseDTO> findAll() {
         return configurationItemRepository.findAll().stream().map(this::mapToResponse).toList();
     }
 
-    public ConfigurationItemResponse findByUuid(String uuid) {
+    public ConfigurationItemResponseDTO findByUuid(String uuid) {
         return configurationItemRepository.findByUuid(uuid).map(this::mapToResponse)
                 .orElseThrow(() -> new EntityNotFoundException("Item niet gevonden"));
     }

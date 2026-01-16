@@ -1,6 +1,6 @@
 package be.thomasmore.tixie.api.controller;
 
-import be.thomasmore.tixie.api.dto.LocationNodeResponse;
+import be.thomasmore.tixie.api.dto.LocationNodeResponseDTO;
 import be.thomasmore.tixie.api.dto.LocationRequestDTO;
 import be.thomasmore.tixie.api.dto.LocationResponseDTO;
 import be.thomasmore.tixie.api.service.LocationService;
@@ -26,7 +26,7 @@ public class LocationController {
     }
 
     @GetMapping("/tree")
-    public List<LocationNodeResponse> getTree() {
+    public List<LocationNodeResponseDTO> getTree() {
         return locationService.getLocationTree();
     }
 
