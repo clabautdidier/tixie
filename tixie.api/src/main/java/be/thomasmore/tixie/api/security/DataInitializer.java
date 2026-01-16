@@ -28,10 +28,23 @@ public class DataInitializer implements CommandLineRunner {
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode(tempPass));
+            admin.setFullName("Administrator");
+            admin.setEmail("admin@tixie.be");
             admin.setRoles(Set.of("ROLE_ADMIN"));
             userRepository.save(admin);
             System.out.println("!!! SECURITY ALERT: Default Admin created !!!");
             System.out.println("Username: admin | Password: " + tempPass);
+
+            // Create a test customer user
+            User customer = new User();
+            customer.setUsername("customer");
+            customer.setPassword(passwordEncoder.encode(tempPass));
+            customer.setFullName("Test Customer");
+            customer.setEmail("customer@example.com");
+            customer.setRoles(Set.of("ROLE_USER"));
+            userRepository.save(customer);
+            System.out.println("!!! Test Customer created !!!");
+            System.out.println("Username: customer | Password: " + tempPass);
         }
     }
 }
