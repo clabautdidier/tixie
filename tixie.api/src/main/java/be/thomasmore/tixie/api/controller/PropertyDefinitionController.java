@@ -1,8 +1,7 @@
 package be.thomasmore.tixie.api.controller;
 
 import be.thomasmore.tixie.api.entity.PropertyDefinition;
-import be.thomasmore.tixie.api.repository.PropertyDefinitionRepository;
-import jakarta.persistence.EntityNotFoundException;
+import be.thomasmore.tixie.api.service.PropertyDefinitionService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,45 +12,34 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN')")
 public class PropertyDefinitionController {
 
-    private final PropertyDefinitionRepository propertyDefinitionRepository;
+    private final PropertyDefinitionService propertyDefinitionService;
 
-    public PropertyDefinitionController(PropertyDefinitionRepository propertyDefinitionRepository) {
-        this.propertyDefinitionRepository = propertyDefinitionRepository;
+    public PropertyDefinitionController(PropertyDefinitionService propertyDefinitionService) {
+        this.propertyDefinitionService = propertyDefinitionService;
     }
 
     @GetMapping
     public List<PropertyDefinition> getAllProperties() {
-        return propertyDefinitionRepository.findAll();
+        return propertyDefinitionService.findAll();
     }
 
     @GetMapping("/{uuid}")
     public PropertyDefinition getPropertyByUuid(@PathVariable String uuid) {
-        return propertyDefinitionRepository.findByUuid(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Property Definition niet gevonden: " + uuid));
+        return propertyDefinitionService.findByUuid(uuid);
     }
 
     @PostMapping
     public PropertyDefinition createProperty(@RequestBody PropertyDefinition propertyDefinition) {
-        // Zorg dat de target niet null is bij creatie
-        if (propertyDefinition.getTarget() == null) {
-            propertyDefinition.setTarget(be.thomasmore.tixie.api.entity.PropertyTarget.ALL);
-        }
-        return propertyDefinitionRepository.save(propertyDefinition);
+        return propertyDefinitionService.create(propertyDefinition);
     }
 
     @PutMapping("/{uuid}")
     public PropertyDefinition updateProperty(@PathVariable String uuid, @RequestBody PropertyDefinition updatedPropertyDefinition) {
-        PropertyDefinition existingPropertyDefinition = propertyDefinitionRepository.findByUuid(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Property Definition niet gevonden: " + uuid));
+        return propertyDefinitionService.update(uuid, updatedPropertyDefinition);
+    }
 
-        existingPropertyDefinition.setName(updatedPropertyDefinition.getName());
-        existingPropertyDefinition.setDataType(updatedPropertyDefinition.getDataType());
-
-        // CRUCIAAL: Voeg de target toe aan de update logica
-        if (updatedPropertyDefinition.getTarget() != null) {
-            existingPropertyDefinition.setTarget(updatedPropertyDefinition.getTarget());
-        }
-
-        return propertyDefinitionRepository.save(existingPropertyDefinition);
+    @DeleteMapping("/{uuid}")
+    public void deleteProperty(@PathVariable String uuid) {
+        propertyDefinitionService.delete(uuid);
     }
 }
