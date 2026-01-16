@@ -14,7 +14,7 @@
     <name>tixie.api</name>
     <description>tixie.api</description>
     <properties>
-        <java.version>25</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <dependency>
@@ -127,6 +127,10 @@
                         </configuration>
                     </execution>
                 </executions>
+                <!-- Disable for now due to compatibility issues -->
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>

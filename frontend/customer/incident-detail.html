@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Customer Portal | Incident Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="main-navbar"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="./js/customer-navbar.js"></script>
+
+<div class="container mt-4">
+    <div class="mb-3">
+        <a href="incidents.html" class="btn btn-secondary btn-sm">← Terug naar overzicht</a>
+    </div>
+
+    <div id="loadingMessage" class="text-center my-5">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Laden...</span>
+        </div>
+    </div>
+
+    <div id="errorMessage" class="alert alert-danger d-none"></div>
+
+    <div id="incidentDetail" class="d-none">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0" id="incidentTitle"></h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> <span id="incidentStatus"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Prioriteit:</strong> <span id="incidentPriority"></span></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Aangemaakt op:</strong> <span id="incidentCreatedAt"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Laatst bijgewerkt:</strong> <span id="incidentUpdatedAt"></span></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3" id="assignedToSection" style="display: none;">
+                    <div class="col-md-12">
+                        <p><strong>Toegewezen aan:</strong> <span id="incidentAssignedTo"></span></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h5>Beschrijving</h5>
+                    <div id="incidentDescription" class="p-3 bg-light rounded"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Beveilig de pagina
+    Auth.checkAuth();
+
+    // Get UUID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const incidentUuid = urlParams.get('uuid');
+
+    if (!incidentUuid) {
+        window.location.href = 'incidents.html';
+    }
+
+    async function loadIncidentDetail() {
+        const loadingDiv = document.getElementById('loadingMessage');
+        const errorDiv = document.getElementById('errorMessage');
+        const detailDiv = document.getElementById('incidentDetail');
+
+        try {
+            const incident = await API.call(`/incidents/${incidentUuid}`, 'GET');
+            
+            loadingDiv.classList.add('d-none');
+            detailDiv.classList.remove('d-none');
+            
+            // Populate the details
+            document.getElementById('incidentTitle').textContent = incident.title;
+            document.getElementById('incidentStatus').innerHTML = getStatusBadge(incident.status);
+            document.getElementById('incidentPriority').innerHTML = getPriorityBadge(incident.priority);
+            document.getElementById('incidentCreatedAt').textContent = new Date(incident.createdAt).toLocaleString('nl-NL');
+            document.getElementById('incidentUpdatedAt').textContent = new Date(incident.updatedAt).toLocaleString('nl-NL');
+            
+            if (incident.assignedToFullName) {
+                document.getElementById('assignedToSection').style.display = 'block';
+                document.getElementById('incidentAssignedTo').textContent = incident.assignedToFullName;
+            }
+            
+            const descriptionDiv = document.getElementById('incidentDescription');
+            if (incident.description) {
+                descriptionDiv.textContent = incident.description;
+            } else {
+                descriptionDiv.innerHTML = '<em class="text-muted">Geen beschrijving</em>';
+            }
+            
+        } catch (err) {
+            loadingDiv.classList.add('d-none');
+            errorDiv.textContent = 'Fout bij het laden van incident: ' + err.message;
+            errorDiv.classList.remove('d-none');
+        }
+    }
+
+    function getStatusBadge(status) {
+        const statusMap = {
+            'OPEN': '<span class="badge bg-danger">Open</span>',
+            'IN_PROGRESS': '<span class="badge bg-warning">In behandeling</span>',
+            'RESOLVED': '<span class="badge bg-info">Opgelost</span>',
+            'CLOSED': '<span class="badge bg-secondary">Gesloten</span>'
+        };
+        return statusMap[status] || status;
+    }
+
+    function getPriorityBadge(priority) {
+        const priorityMap = {
+            'LOW': '<span class="badge bg-secondary">Laag</span>',
+            'MEDIUM': '<span class="badge bg-primary">Normaal</span>',
+            'HIGH': '<span class="badge bg-warning">Hoog</span>',
+            'CRITICAL': '<span class="badge bg-danger">Kritiek</span>'
+        };
+        return priorityMap[priority] || priority;
+    }
+
+    // Load incident when page loads
+    loadIncidentDetail();
+</script>
+</body>
+</html>

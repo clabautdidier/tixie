@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Tixie Customer Portal | Nieuw Incident</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="main-navbar"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="./js/customer-navbar.js"></script>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Nieuw Incident Melden</h4>
+                </div>
+                <div class="card-body">
+                    <form id="incidentForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Titel <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" required 
+                                   placeholder="Korte beschrijving van het probleem">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">Prioriteit <span class="text-danger">*</span></label>
+                            <select class="form-select" id="priority" required>
+                                <option value="LOW">Laag</option>
+                                <option value="MEDIUM" selected>Normaal</option>
+                                <option value="HIGH">Hoog</option>
+                                <option value="CRITICAL">Kritiek</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschrijving</label>
+                            <textarea class="form-control" id="description" rows="6" 
+                                      placeholder="Geef een gedetailleerde beschrijving van het probleem"></textarea>
+                            <div class="form-text">Geef zoveel mogelijk details over het probleem zodat we u beter kunnen helpen.</div>
+                        </div>
+                        
+                        <div id="errorMessage" class="alert alert-danger d-none"></div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="incidents.html" class="btn btn-secondary">Annuleren</a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                Incident Melden
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Beveilig de pagina
+    Auth.checkAuth();
+
+    document.getElementById('incidentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const errorDiv = document.getElementById('errorMessage');
+        
+        // Disable submit button
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Bezig met versturen...';
+        errorDiv.classList.add('d-none');
+        
+        const incidentData = {
+            title: document.getElementById('title').value,
+            priority: document.getElementById('priority').value,
+            description: document.getElementById('description').value
+        };
+        
+        try {
+            const result = await API.call('/incidents', 'POST', incidentData);
+            
+            // Success - redirect to incidents list
+            window.location.href = `incident-detail.html?uuid=${result.uuid}`;
+            
+        } catch (err) {
+            errorDiv.textContent = 'Fout bij het aanmaken van incident: ' + err.message;
+            errorDiv.classList.remove('d-none');
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Incident Melden';
+        }
+    });
+</script>
+</body>
+</html>
