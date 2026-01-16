@@ -42,8 +42,15 @@
         const passVal = document.getElementById('password').value;
         const errorDiv = document.getElementById('errorMsg');
 
+        // Reset error message
+        errorDiv.classList.add('d-none');
+        errorDiv.textContent = '';
+
         try {
-            const data = await API.login(userVal, passVal);
+            // Use API.login directly to avoid API.call interceptors (like auto-logout on 401)
+            let response = await API.login(userVal, passVal);
+
+            const data = await response;
 
             localStorage.setItem('jwt_token', data.token);
 

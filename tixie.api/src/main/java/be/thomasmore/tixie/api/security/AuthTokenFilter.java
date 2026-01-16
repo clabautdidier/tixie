@@ -1,5 +1,6 @@
 package be.thomasmore.tixie.api.security;
 
+import be.thomasmore.tixie.api.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -27,8 +27,7 @@ public class JwtUtils {
     }
 
     public String generateJwtToken(Authentication authentication) {
-        org.springframework.security.core.userdetails.User userPrincipal = 
-            (org.springframework.security.core.userdetails.User) authentication.getPrincipal();
+        CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
 
         // We stoppen de rollen expliciet in de 'claims' zodat de frontend 
         // kan beslissen welke menu-items getoond worden zonder de API te pollen.
@@ -38,7 +37,8 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject(userPrincipal.getUsername())
-                .claim("roles", roles) 
+                .claim("roles", roles)
+                .claim("fullName", userPrincipal.getFullName())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

@@ -1,7 +1,8 @@
-package be.thomasmore.tixie.api.security;
+package be.thomasmore.tixie.api.service;
 
 import be.thomasmore.tixie.api.entity.User;
 import be.thomasmore.tixie.api.repository.UserRepository;
+import be.thomasmore.tixie.api.security.CustomUserDetails;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -35,11 +36,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
 
-        // 4. Retourneer een Spring Security User object
-        return new org.springframework.security.core.userdetails.User(
+        // 4. Retourneer een CustomUserDetails object met de volledige naam
+        return new CustomUserDetails(
                 user.getUsername(),
                 user.getPassword(),
-                authorities
+                authorities,
+                user.getFullName()
         );
     }
 }

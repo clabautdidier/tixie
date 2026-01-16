@@ -1,5 +1,6 @@
 package be.thomasmore.tixie.api.service;
 
+import be.thomasmore.tixie.api.dto.ChangePasswordDTO;
 import be.thomasmore.tixie.api.dto.UserRequestDTO;
 import be.thomasmore.tixie.api.dto.UserResponseDTO;
 import be.thomasmore.tixie.api.entity.User;
@@ -105,14 +106,6 @@ public class UserService {
         return convertToDto(user);
     }
 
-    public void resetPassword(String uuid, String newPassword) {
-        User user = userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-
     public UserResponseDTO modifyPassword(String uuid, UserRequestDTO passwordRequest) {
         User user = userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -121,6 +114,18 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(passwordRequest.password()));
         userRepository.save(user);
         return convertToDto(user);
+    }
+
+    public void changePassword(String username, ChangePasswordDTO changePasswordDTO) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(changePasswordDTO.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Huidig wachtwoord is onjuist");
+        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordDTO.newPassword()));
+        userRepository.save(user);
     }
 
     private UserResponseDTO convertToDto(User user) {

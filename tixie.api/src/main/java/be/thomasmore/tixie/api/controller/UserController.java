@@ -1,8 +1,10 @@
 package be.thomasmore.tixie.api.controller;
 
+import be.thomasmore.tixie.api.dto.ChangePasswordDTO;
 import be.thomasmore.tixie.api.dto.UserRequestDTO;
 import be.thomasmore.tixie.api.dto.UserResponseDTO;
 import be.thomasmore.tixie.api.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -61,15 +63,15 @@ public class UserController {
         return userService.update(uuid, dto);
     }
 
-    @PostMapping("/{uuid}/reset-password")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void resetPassword(@PathVariable String uuid, @RequestBody String newPassword) {
-        userService.resetPassword(uuid, newPassword);
-    }
-
     @PutMapping("/{uuid}/password")
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponseDTO modifyPassword(@PathVariable String uuid, @RequestBody UserRequestDTO passwordRequest) {
         return userService.modifyPassword(uuid, passwordRequest);
+    }
+
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal UserDetails userDetails, @RequestBody ChangePasswordDTO changePasswordDTO) {
+        userService.changePassword(userDetails.getUsername(), changePasswordDTO);
     }
 }

@@ -2,13 +2,13 @@ package be.thomasmore.tixie.api.controller;
 
 import be.thomasmore.tixie.api.dto.LoginRequestDTO;
 import be.thomasmore.tixie.api.dto.JwtResponseDTO;
+import be.thomasmore.tixie.api.security.CustomUserDetails;
 import be.thomasmore.tixie.api.security.JwtUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-public JwtResponseDTO authenticateUser(@RequestBody LoginRequestDTO loginRequest) {
+    public JwtResponseDTO authenticateUser(@RequestBody LoginRequestDTO loginRequest) {
         
         // 1. Authenticeer de gebruiker (Spring Security checkt hier het wachtwoord via CustomUserDetailsService)
         Authentication authentication = authenticationManager.authenticate(
@@ -40,7 +40,7 @@ public JwtResponseDTO authenticateUser(@RequestBody LoginRequestDTO loginRequest
         String jwt = jwtUtils.generateJwtToken(authentication);
 
         // 4. Haal details op om terug te sturen
-        User userDetails = (User) authentication.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());

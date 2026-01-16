@@ -14,16 +14,23 @@ const API = {
 
         if (body) options.body = JSON.stringify(body);
 
-        const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}${endpoint}`, options);
+        } catch (e) {
+            throw new Error("Kan de server niet bereiken.");
+        }
 
         if (response.status === 401) {
+            if (endpoint === '/auth/login') {
+                throw new Error("Ongeldige gebruikersnaam of wachtwoord.");
+            }
             Auth.logout();
             return null;
         }
 
         if (response.status === 403) {
-            alert("403: Onvoldoende rechten voor deze actie.");
-            return null;
+            throw new Error("Onvoldoende rechten.");
         }
 
         if (!response.ok) {
