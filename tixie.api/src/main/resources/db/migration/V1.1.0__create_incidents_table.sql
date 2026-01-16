@@ -24,3 +24,9 @@ CREATE INDEX idx_incidents_assigned_to_id ON incidents(assigned_to_id);
 
 -- Create index for faster queries by status
 CREATE INDEX idx_incidents_status ON incidents(status);
+
+-- Create composite index for customer queries with status filter
+CREATE INDEX idx_incidents_customer_status ON incidents(customer_id, status);
+
+-- Create composite index for customer queries sorted by creation date
+CREATE INDEX idx_incidents_customer_created ON incidents(customer_id, created_at DESC);

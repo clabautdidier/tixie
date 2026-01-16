@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static be.thomasmore.tixie.api.entity.IncidentPriority.MEDIUM;
 
 @Service
-@Transactional
 public class IncidentService {
 
     private final IncidentRepository incidentRepository;
@@ -25,14 +25,16 @@ public class IncidentService {
         this.userRepository = userRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<IncidentResponseDTO> findAllByCustomerUsername(String username) {
         User customer = userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
         return incidentRepository.findByCustomerOrderByCreatedAtDesc(customer).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
+    @Transactional(readOnly = true)
     public IncidentResponseDTO findByUuid(String uuid, String currentUsername) {
         Incident incident = incidentRepository.findByUuid(uuid)
                 .orElseThrow(() -> new EntityNotFoundException("Incident not found: " + uuid));
@@ -45,6 +47,7 @@ public class IncidentService {
         return mapToResponse(incident);
     }
 
+    @Transactional
     public IncidentResponseDTO createIncident(IncidentRequestDTO dto, String customerUsername) {
         User customer = userRepository.findByUsername(customerUsername)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + customerUsername));
@@ -52,7 +55,7 @@ public class IncidentService {
         Incident incident = new Incident();
         incident.setTitle(dto.title());
         incident.setDescription(dto.description());
-        incident.setPriority(dto.priority() != null ? dto.priority() : be.thomasmore.tixie.api.entity.IncidentPriority.MEDIUM);
+        incident.setPriority(dto.priority() != null ? dto.priority() : MEDIUM);
         incident.setCustomer(customer);
 
         Incident saved = incidentRepository.save(incident);

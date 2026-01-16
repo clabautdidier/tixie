@@ -3,6 +3,7 @@ package be.thomasmore.tixie.api.controller;
 import be.thomasmore.tixie.api.dto.IncidentRequestDTO;
 import be.thomasmore.tixie.api.dto.IncidentResponseDTO;
 import be.thomasmore.tixie.api.service.IncidentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,7 +42,7 @@ public class IncidentController {
     @PostMapping
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<IncidentResponseDTO> createIncident(
-            @RequestBody IncidentRequestDTO dto,
+            @Valid @RequestBody IncidentRequestDTO dto,
             @AuthenticationPrincipal UserDetails userDetails) {
         IncidentResponseDTO created = incidentService.createIncident(dto, userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
