@@ -52,6 +52,8 @@ Thumbs.db
 *.db
 *.sqlite
 *.sql
+# But keep Flyway migrations
+!**/src/main/resources/db/migration/*.sql
 
 # Misc
 coverage/
