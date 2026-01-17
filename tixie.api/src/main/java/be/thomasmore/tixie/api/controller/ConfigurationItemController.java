@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/configuration-items")
-@PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN')")
 public class ConfigurationItemController {
 
     private final ConfigurationItemService configurationItemService;
@@ -28,7 +27,8 @@ public class ConfigurationItemController {
      * @return Een lijst met ConfigurationItemResponse objecten.
      */
     @GetMapping
-public ResponseEntity<List<ConfigurationItemResponseDTO>> getAllConfigurationItems() {
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN', 'USER')")
+    public ResponseEntity<List<ConfigurationItemResponseDTO>> getAllConfigurationItems() {
         List<ConfigurationItemResponseDTO> configurationItems = configurationItemService.findAll();
         return ResponseEntity.ok(configurationItems);
     }
@@ -39,7 +39,8 @@ public ResponseEntity<List<ConfigurationItemResponseDTO>> getAllConfigurationIte
      * @return Het aangemaakte item als ConfigurationItemResponse.
      */
     @PostMapping
-public ResponseEntity<ConfigurationItemResponseDTO> createConfigurationItem(
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN')")
+    public ResponseEntity<ConfigurationItemResponseDTO> createConfigurationItem(
             @RequestBody ConfigurationItemRequestDTO configurationItemRequest) {
         ConfigurationItemResponseDTO createdItem = configurationItemService.createConfigurationItem(configurationItemRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdItem);
@@ -51,14 +52,16 @@ public ResponseEntity<ConfigurationItemResponseDTO> createConfigurationItem(
      * @return Het gevraagde item.
      */
     @GetMapping("/{uuid}")
-public ResponseEntity<ConfigurationItemResponseDTO> getConfigurationItemByUuid(@PathVariable String uuid) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN', 'USER')")
+    public ResponseEntity<ConfigurationItemResponseDTO> getConfigurationItemByUuid(@PathVariable String uuid) {
         ConfigurationItemResponseDTO configurationItem = configurationItemService.findByUuid(uuid);
         return ResponseEntity.ok(configurationItem);
     }
 
     @GetMapping("/tree")
-    public List<ConfigurationItemNodeResponseDTO> getTree() {
-        return configurationItemService.getConfigurationItemTree();
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN', 'USER')")
+    public List<ConfigurationItemNodeResponseDTO> getTree(@RequestParam(required = false) String locationUuid) {
+        return configurationItemService.getConfigurationItemTree(locationUuid);
     }
 
     /**
@@ -68,7 +71,8 @@ public ResponseEntity<ConfigurationItemResponseDTO> getConfigurationItemByUuid(@
      * @return Het bijgewerkte item.
      */
     @PutMapping("/{uuid}")
-public ResponseEntity<ConfigurationItemResponseDTO> updateConfigurationItem(
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN')")
+    public ResponseEntity<ConfigurationItemResponseDTO> updateConfigurationItem(
             @PathVariable String uuid,
             @RequestBody ConfigurationItemRequestDTO configurationItemRequest) {
         ConfigurationItemResponseDTO updatedItem = configurationItemService.updateConfigurationItem(uuid, configurationItemRequest);
@@ -81,6 +85,7 @@ public ResponseEntity<ConfigurationItemResponseDTO> updateConfigurationItem(
      * @return Een 204 No Content status bij succes.
      */
     @DeleteMapping("/{uuid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGADMIN')")
     public ResponseEntity<Void> deleteConfigurationItem(@PathVariable String uuid) {
         configurationItemService.deleteConfigurationItem(uuid);
         return ResponseEntity.noContent().build();

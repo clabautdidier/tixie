@@ -14,6 +14,9 @@ public record IncidentRequestDTO(
         String description,
         
         @NotNull(message = "Priority is required")
-        IncidentPriority priority
+        IncidentPriority priority,
+
+        String locationUuid,
+        String configurationItemUuid
 ) {
 }

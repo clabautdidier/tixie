@@ -36,13 +36,74 @@ public class ConfigurationItemService {
      * Bouwt de volledige hiërarchische boomstructuur van alle Configuration Items op.
      */
     @Transactional(readOnly = true)
-    public List<ConfigurationItemNodeResponseDTO> getConfigurationItemTree() {
-        // Haal de hoofditems op (items zonder parent CI)
-        List<ConfigurationItem> rootConfigurationItems = configurationItemRepository.findAllByParentConfigurationItemIdIsNull();
+    public List<ConfigurationItemNodeResponseDTO> getConfigurationItemTree(String locationUuid) {
+        List<ConfigurationItem> rootConfigurationItems;
+        
+        if (locationUuid != null && !locationUuid.isBlank()) {
+            Location location = locationRepository.findByUuid(locationUuid)
+                    .orElseThrow(() -> new EntityNotFoundException("Location not found: " + locationUuid));
+            // Filter root items by location
+            // Note: This assumes a simple filtering where we only check if the item itself is at the location.
+            // If items inherit location from parents or if we need to find items in sub-locations, this logic needs to be more complex.
+            // For now, we'll filter the roots and then filter children recursively in mapToNodeResponse if needed, 
+            // but typically location filtering on tree roots is a good start.
+            // However, since the repository method findAllByParentConfigurationItemIdIsNull() doesn't take location,
+            // we might need a custom query or filter in memory.
+            
+            // Let's filter in memory for now as the dataset might not be huge, or add a repo method.
+            // Better approach: Find all items at location, then reconstruct tree or just show flat list?
+            // The requirement implies filtering the selection.
+            
+            // Let's try to find roots that match the location OR have descendants at the location?
+            // Or simply: Show only items that are at the specific location.
+            
+            // If the requirement is "limit configuration items to the selected location", it likely means
+            // we should only show items physically located there.
+            
+            rootConfigurationItems = configurationItemRepository.findAllByParentConfigurationItemIdIsNull().stream()
+                    .filter(ci -> isAtLocation(ci, location.getId()))
+                    .toList();
+        } else {
+            rootConfigurationItems = configurationItemRepository.findAllByParentConfigurationItemIdIsNull();
+        }
 
         return rootConfigurationItems.stream()
-                .map(this::mapToNodeResponse)
+                .map(ci -> mapToNodeResponse(ci, locationUuid != null ? locationRepository.findByUuid(locationUuid).map(Location::getId).orElse(null) : null))
+                .filter(node -> node != null) // Filter out nulls if mapToNodeResponse returns null for non-matching nodes
                 .toList();
+    }
+    
+    private boolean isAtLocation(ConfigurationItem item, Long locationId) {
+        // Check if item is at location
+        if (item.getLocationId() != null && item.getLocationId().equals(locationId)) {
+            return true;
+        }
+        // Check if any child is at location (recursive) - if we want to show parents of items at location
+        // But usually for selection we just want the items themselves.
+        // If the tree structure is important, we might need to show parents even if they are not at the location,
+        // but disable selection? Or just show the sub-tree rooted at the location?
+        
+        // Let's assume strict filtering: Only show items at the location.
+        // But wait, getConfigurationItemTree returns a tree. If a parent is NOT at the location but a child IS,
+        // should we show the parent?
+        
+        // Simplest interpretation: Filter the tree to only include nodes (and their paths) relevant to the location.
+        // Or maybe just filter the list of available items if it wasn't a tree.
+        // Since it IS a tree, let's try to keep the structure but filter nodes.
+        
+        return checkItemOrChildrenAtLocation(item, locationId);
+    }
+
+    private boolean checkItemOrChildrenAtLocation(ConfigurationItem item, Long locationId) {
+        if (item.getLocationId() != null && item.getLocationId().equals(locationId)) {
+            return true;
+        }
+        for (ConfigurationItem child : item.getChildConfigurationItems()) {
+            if (checkItemOrChildrenAtLocation(child, locationId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public ConfigurationItemResponseDTO createConfigurationItem(ConfigurationItemRequestDTO request) {
@@ -139,9 +200,11 @@ public class ConfigurationItemService {
         }
     }
 
-private ConfigurationItemNodeResponseDTO mapToNodeResponse(ConfigurationItem configurationItem) {
+    private ConfigurationItemNodeResponseDTO mapToNodeResponse(ConfigurationItem configurationItem, Long filterLocationId) {
+        // If filtering by location, only include children that are relevant (at location or have descendants at location)
         List<ConfigurationItemNodeResponseDTO> children = configurationItem.getChildConfigurationItems().stream()
-                .map(this::mapToNodeResponse)
+                .filter(child -> filterLocationId == null || checkItemOrChildrenAtLocation(child, filterLocationId))
+                .map(child -> mapToNodeResponse(child, filterLocationId))
                 .toList();
 
         return new ConfigurationItemNodeResponseDTO(
@@ -156,7 +219,7 @@ private ConfigurationItemNodeResponseDTO mapToNodeResponse(ConfigurationItem con
         String parentUuid = (item.getParentConfigurationItem() != null) ? item.getParentConfigurationItem().getUuid() : null;
         String parentName = (item.getParentConfigurationItem() != null) ? item.getParentConfigurationItem().getName() : null;
 
-List<ConfigurationItemValueResponseDTO> valueResponses = item.getValues().stream()
+        List<ConfigurationItemValueResponseDTO> valueResponses = item.getValues().stream()
                 .map(val -> new ConfigurationItemValueResponseDTO(
                         val.getPropertyDefinition().getUuid(),
                         val.getPropertyDefinition().getName(),
@@ -177,7 +240,7 @@ List<ConfigurationItemValueResponseDTO> valueResponses = item.getValues().stream
         );
     }
 
-public List<ConfigurationItemResponseDTO> findAll() {
+    public List<ConfigurationItemResponseDTO> findAll() {
         return configurationItemRepository.findAll().stream().map(this::mapToResponse).toList();
     }
 

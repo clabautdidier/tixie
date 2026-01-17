@@ -40,6 +40,14 @@ public class Incident {
     @JoinColumn(name = "assigned_to_id")
     private User assignedTo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "configuration_item_id")
+    private ConfigurationItem configurationItem;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

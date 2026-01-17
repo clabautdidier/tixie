@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/locations")
-@PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN')")
 public class LocationController {
 
     private final LocationService locationService;
@@ -21,31 +20,37 @@ public class LocationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN', 'USER')")
     public List<LocationResponseDTO> getAll() {
         return locationService.findAll();
     }
 
     @GetMapping("/tree")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN', 'USER')")
     public List<LocationNodeResponseDTO> getTree() {
         return locationService.getLocationTree();
     }
 
     @GetMapping("/{uuid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN', 'USER')")
     public LocationResponseDTO getByUuid(@PathVariable String uuid) {
         return locationService.findByUuid(uuid);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN')")
     public LocationResponseDTO create(@RequestBody LocationRequestDTO request) {
         return locationService.create(request);
     }
 
     @PutMapping("/{uuid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN')")
     public LocationResponseDTO update(@PathVariable String uuid, @RequestBody LocationRequestDTO request) {
         return locationService.update(uuid, request);
     }
 
     @DeleteMapping("/{uuid}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONFIGLOCATIONADMIN')")
     public void delete(@PathVariable String uuid) {
         locationService.delete(uuid);
     }

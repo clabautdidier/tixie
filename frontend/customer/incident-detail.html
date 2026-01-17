@@ -6,8 +6,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Quill CSS for consistent rendering of content -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link href="../assets/css/tree-view.css" rel="stylesheet">
     <style>
-        /* Ensure the description content looks like it did in the editor */
         .ql-editor {
             padding: 0;
             min-height: auto;
@@ -15,6 +15,47 @@
         /* Override some Quill defaults that might conflict with Bootstrap or look odd in read-only mode */
         .ql-container.ql-snow {
             border: none;
+        }
+        /* Simple tree view styling */
+        .tree-view ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        .tree-view li {
+            margin: 2px 0;
+        }
+        .tree-view .caret {
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+            width: 20px; /* Fixed width for alignment */
+            text-align: center;
+        }
+        .tree-view .caret::before {
+            content: "\25B6";
+            color: black;
+            display: inline-block;
+        }
+        .tree-view .caret-down::before {
+            transform: rotate(90deg);
+        }
+        .tree-view .nested {
+            display: none;
+        }
+        .tree-view .active {
+            display: block;
+        }
+        .node-content {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .node-content:hover {
+            background-color: #f8f9fa;
+        }
+        .selected-node {
+            background-color: #e9ecef;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -77,6 +118,38 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div id="locationDisplay">
+                                <p><strong>Locatie:</strong> <span id="incidentLocation"></span></p>
+                            </div>
+                            <div id="locationEdit" class="d-none">
+                                <label class="form-label"><strong>Locatie:</strong></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="locationNameInput" readonly>
+                                    <input type="hidden" id="locationUuidInput">
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#locationModal">Kies</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="ciDisplay">
+                                <p><strong>Configuratie Item:</strong> <span id="incidentCI"></span></p>
+                            </div>
+                            <div id="ciEdit" class="d-none">
+                                <label class="form-label"><strong>Configuratie Item:</strong></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="ciNameInput" readonly>
+                                    <input type="hidden" id="ciUuidInput">
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#ciModal">Kies</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text text-danger d-none" id="locationError">Vul minstens één van beide velden in (Locatie of Configuratie Item).</div>
+                        </div>
+                    </div>
+
                     <div class="row mb-3" id="assignedToSection" style="display: none;">
                         <div class="col-md-12">
                             <p><strong>Toegewezen aan:</strong> <span id="incidentAssignedTo"></span></p>
@@ -107,6 +180,36 @@
                         <button type="submit" class="btn btn-success">Opslaan</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Location Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Selecteer Locatie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="locationTree" class="tree-view">Laden...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CI Modal -->
+<div class="modal fade" id="ciModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Selecteer Configuratie Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="ciTree" class="tree-view">Laden...</div>
             </div>
         </div>
     </div>
@@ -146,6 +249,9 @@
             document.getElementById('incidentCreatedAt').textContent = new Date(incident.createdAt).toLocaleString('nl-NL');
             document.getElementById('incidentUpdatedAt').textContent = new Date(incident.updatedAt).toLocaleString('nl-NL');
             
+            document.getElementById('incidentLocation').textContent = incident.locationPath || incident.locationName || '-';
+            document.getElementById('incidentCI').textContent = incident.configurationItemPath || incident.configurationItemName || '-';
+
             if (incident.assignedToFullName) {
                 document.getElementById('assignedToSection').style.display = 'block';
                 document.getElementById('incidentAssignedTo').textContent = incident.assignedToFullName;
@@ -172,20 +278,134 @@
         }
     }
 
+    // Tree View Logic
+    function buildTree(nodes, containerId, onSelect, parentPath = '') {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const ul = document.createElement('ul');
+
+        nodes.forEach(node => {
+            ul.appendChild(createTreeNode(node, onSelect, parentPath));
+        });
+
+        container.appendChild(ul);
+    }
+
+    function createTreeNode(node, onSelect, parentPath) {
+        const li = document.createElement('li');
+        const currentPath = parentPath ? `${parentPath} > ${node.name}` : node.name;
+
+        // Flex container for the row
+        const rowDiv = document.createElement('div');
+        rowDiv.style.display = 'flex';
+        rowDiv.style.alignItems = 'center';
+
+        // Caret (expander)
+        const caretSpan = document.createElement('span');
+        if (node.children && node.children.length > 0) {
+            caretSpan.classList.add('caret');
+            caretSpan.onclick = (e) => {
+                e.stopPropagation();
+                const nested = li.querySelector('.nested');
+                if (nested) nested.classList.toggle('active');
+                caretSpan.classList.toggle('caret-down');
+            };
+        } else {
+            // Spacer for leaf nodes
+            caretSpan.style.display = 'inline-block';
+            caretSpan.style.width = '20px';
+        }
+        rowDiv.appendChild(caretSpan);
+
+        // Label (Content)
+        const labelSpan = document.createElement('span');
+        labelSpan.textContent = node.name;
+        labelSpan.classList.add('node-content');
+
+        // Only label click triggers selection
+        labelSpan.onclick = (e) => {
+            e.stopPropagation();
+            // Remove selected class from all nodes in this tree
+            const treeRoot = li.closest('.tree-view');
+            treeRoot.querySelectorAll('.selected-node').forEach(el => el.classList.remove('selected-node'));
+            labelSpan.classList.add('selected-node');
+            onSelect(node, currentPath);
+        };
+        rowDiv.appendChild(labelSpan);
+
+        li.appendChild(rowDiv);
+
+        if (node.children && node.children.length > 0) {
+            const nestedUl = document.createElement('ul');
+            nestedUl.classList.add('nested');
+
+            node.children.forEach(child => {
+                nestedUl.appendChild(createTreeNode(child, onSelect, currentPath));
+            });
+
+            li.appendChild(nestedUl);
+        }
+
+        return li;
+    }
+
+    // Load Trees
+    async function loadLocationTree() {
+        try {
+            const locations = await API.call('/locations/tree');
+            buildTree(locations, 'locationTree', async (node, path) => {
+                document.getElementById('locationNameInput').value = path;
+                document.getElementById('locationUuidInput').value = node.uuid;
+                bootstrap.Modal.getInstance(document.getElementById('locationModal')).hide();
+
+                // Clear CI selection when location changes
+                document.getElementById('ciNameInput').value = '';
+                document.getElementById('ciUuidInput').value = '';
+
+                // Reload CI tree filtered by location
+                await loadCITree(node.uuid);
+            });
+        } catch (err) {
+            console.error("Error loading location tree:", err);
+        }
+    }
+
+    async function loadCITree(locationUuid = null) {
+        try {
+            const endpoint = locationUuid ? `/configuration-items/tree?locationUuid=${locationUuid}` : '/configuration-items/tree';
+            const cis = await API.call(endpoint);
+            buildTree(cis, 'ciTree', (node, path) => {
+                document.getElementById('ciNameInput').value = path;
+                document.getElementById('ciUuidInput').value = node.uuid;
+                bootstrap.Modal.getInstance(document.getElementById('ciModal')).hide();
+            });
+        } catch (err) {
+            console.error("Error loading CI tree:", err);
+        }
+    }
+
     function enableEditMode() {
         document.getElementById('editBtn').classList.add('d-none');
         document.getElementById('priorityDisplay').classList.add('d-none');
         document.getElementById('descriptionDisplay').classList.add('d-none');
         document.getElementById('incidentTitle').classList.add('d-none'); // Hide title in header
+        document.getElementById('locationDisplay').classList.add('d-none');
+        document.getElementById('ciDisplay').classList.add('d-none');
 
         document.getElementById('priorityEdit').classList.remove('d-none');
         document.getElementById('descriptionEdit').classList.remove('d-none');
         document.getElementById('titleEdit').classList.remove('d-none');
+        document.getElementById('locationEdit').classList.remove('d-none');
+        document.getElementById('ciEdit').classList.remove('d-none');
         document.getElementById('editActions').classList.remove('d-none');
 
         // Populate inputs
         document.getElementById('titleInput').value = currentIncident.title;
         document.getElementById('priorityInput').value = currentIncident.priority;
+        document.getElementById('locationNameInput').value = currentIncident.locationPath || currentIncident.locationName || '';
+        document.getElementById('locationUuidInput').value = currentIncident.locationUuid || '';
+        document.getElementById('ciNameInput').value = currentIncident.configurationItemPath || currentIncident.configurationItemName || '';
+        document.getElementById('ciUuidInput').value = currentIncident.configurationItemUuid || '';
 
         // Initialize Quill if not already done
         if (!quill) {
@@ -215,6 +435,11 @@
         if (currentIncident.description) {
             quill.root.innerHTML = currentIncident.description;
         }
+
+        // Load trees for selection
+        loadLocationTree();
+        // If a location is already selected, filter CIs by it
+        loadCITree(currentIncident.locationUuid);
     }
 
     function cancelEdit() {
@@ -222,23 +447,42 @@
         document.getElementById('priorityDisplay').classList.remove('d-none');
         document.getElementById('descriptionDisplay').classList.remove('d-none');
         document.getElementById('incidentTitle').classList.remove('d-none');
+        document.getElementById('locationDisplay').classList.remove('d-none');
+        document.getElementById('ciDisplay').classList.remove('d-none');
 
         document.getElementById('priorityEdit').classList.add('d-none');
         document.getElementById('descriptionEdit').classList.add('d-none');
         document.getElementById('titleEdit').classList.add('d-none');
+        document.getElementById('locationEdit').classList.add('d-none');
+        document.getElementById('ciEdit').classList.add('d-none');
         document.getElementById('editActions').classList.add('d-none');
+        document.getElementById('locationError').classList.add('d-none');
     }
 
     document.getElementById('editForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const errorDiv = document.getElementById('errorMessage');
+        const locationError = document.getElementById('locationError');
         errorDiv.classList.add('d-none');
+
+        const locationUuid = document.getElementById('locationUuidInput').value;
+        const ciUuid = document.getElementById('ciUuidInput').value;
+
+        // Validate that at least one of location or configurationItem is filled
+        if (!locationUuid && !ciUuid) {
+            locationError.classList.remove('d-none');
+            return;
+        } else {
+            locationError.classList.add('d-none');
+        }
 
         const updatedData = {
             title: document.getElementById('titleInput').value,
             priority: document.getElementById('priorityInput').value,
-            description: quill.root.innerHTML
+            description: quill.root.innerHTML,
+            locationUuid: locationUuid,
+            configurationItemUuid: ciUuid
         };
 
         try {
