@@ -47,4 +47,14 @@ public class IncidentController {
         IncidentResponseDTO created = incidentService.createIncident(dto, userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
+
+    @PutMapping("/{uuid}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<IncidentResponseDTO> updateIncident(
+            @PathVariable String uuid,
+            @Valid @RequestBody IncidentRequestDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        IncidentResponseDTO updated = incidentService.updateIncident(uuid, dto, userDetails.getUsername());
+        return ResponseEntity.ok(updated);
+    }
 }

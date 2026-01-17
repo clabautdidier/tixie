@@ -3,6 +3,7 @@ package be.thomasmore.tixie.api.service;
 import be.thomasmore.tixie.api.dto.IncidentRequestDTO;
 import be.thomasmore.tixie.api.dto.IncidentResponseDTO;
 import be.thomasmore.tixie.api.entity.Incident;
+import be.thomasmore.tixie.api.entity.IncidentStatus;
 import be.thomasmore.tixie.api.entity.User;
 import be.thomasmore.tixie.api.repository.IncidentRepository;
 import be.thomasmore.tixie.api.repository.UserRepository;
@@ -57,6 +58,31 @@ public class IncidentService {
         incident.setDescription(dto.description());
         incident.setPriority(dto.priority() != null ? dto.priority() : MEDIUM);
         incident.setCustomer(customer);
+
+        Incident saved = incidentRepository.save(incident);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public IncidentResponseDTO updateIncident(String uuid, IncidentRequestDTO dto, String customerUsername) {
+        Incident incident = incidentRepository.findByUuid(uuid)
+                .orElseThrow(() -> new EntityNotFoundException("Incident not found: " + uuid));
+
+        // Ensure customer can only update their own incidents
+        if (!incident.getCustomer().getUsername().equals(customerUsername)) {
+            throw new SecurityException("Access denied to incident: " + uuid);
+        }
+
+        // Ensure incident is in OPEN status
+        if (incident.getStatus() != IncidentStatus.OPEN) {
+            throw new IllegalStateException("Only incidents with status OPEN can be edited.");
+        }
+
+        incident.setTitle(dto.title());
+        incident.setDescription(dto.description());
+        if (dto.priority() != null) {
+            incident.setPriority(dto.priority());
+        }
 
         Incident saved = incidentRepository.save(incident);
         return mapToResponse(saved);

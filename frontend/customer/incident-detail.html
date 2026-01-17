@@ -4,11 +4,25 @@
     <meta charset="UTF-8">
     <title>Tixie Customer Portal | Incident Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Quill CSS for consistent rendering of content -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        /* Ensure the description content looks like it did in the editor */
+        .ql-editor {
+            padding: 0;
+            min-height: auto;
+        }
+        /* Override some Quill defaults that might conflict with Bootstrap or look odd in read-only mode */
+        .ql-container.ql-snow {
+            border: none;
+        }
+    </style>
 </head>
 <body>
 <div id="main-navbar"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script src="../assets/js/auth.js"></script>
 <script src="../assets/js/api.js"></script>
 <script src="./js/customer-navbar.js"></script>
@@ -28,40 +42,71 @@
 
     <div id="incidentDetail" class="d-none">
         <div class="card">
-            <div class="card-header bg-success text-white">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0" id="incidentTitle"></h4>
+                <button id="editBtn" class="btn btn-light btn-sm d-none" onclick="enableEditMode()">Bewerken</button>
             </div>
             <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Status:</strong> <span id="incidentStatus"></span></p>
+                <form id="editForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="incidentStatus"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="priorityDisplay">
+                                <strong>Prioriteit:</strong> <span id="incidentPriority"></span>
+                            </div>
+                            <div id="priorityEdit" class="d-none">
+                                <label for="priorityInput" class="form-label"><strong>Prioriteit:</strong></label>
+                                <select class="form-select" id="priorityInput">
+                                    <option value="LOW">Laag</option>
+                                    <option value="MEDIUM">Normaal</option>
+                                    <option value="HIGH">Hoog</option>
+                                    <option value="CRITICAL">Kritiek</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Prioriteit:</strong> <span id="incidentPriority"></span></p>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Aangemaakt op:</strong> <span id="incidentCreatedAt"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Laatst bijgewerkt:</strong> <span id="incidentUpdatedAt"></span></p>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Aangemaakt op:</strong> <span id="incidentCreatedAt"></span></p>
+
+                    <div class="row mb-3" id="assignedToSection" style="display: none;">
+                        <div class="col-md-12">
+                            <p><strong>Toegewezen aan:</strong> <span id="incidentAssignedTo"></span></p>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Laatst bijgewerkt:</strong> <span id="incidentUpdatedAt"></span></p>
+
+                    <div id="titleEdit" class="mb-3 d-none">
+                        <label for="titleInput" class="form-label"><strong>Titel:</strong></label>
+                        <input type="text" class="form-control" id="titleInput">
                     </div>
-                </div>
-                
-                <div class="row mb-3" id="assignedToSection" style="display: none;">
-                    <div class="col-md-12">
-                        <p><strong>Toegewezen aan:</strong> <span id="incidentAssignedTo"></span></p>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h5>Beschrijving</h5>
+                        <!-- Read-only view -->
+                        <div id="descriptionDisplay" class="p-3 bg-light rounded ql-snow">
+                            <div id="incidentDescription" class="ql-editor"></div>
+                        </div>
+                        <!-- Edit view -->
+                        <div id="descriptionEdit" class="d-none">
+                            <div id="editor-container"></div>
+                        </div>
                     </div>
-                </div>
-                
-                <hr>
-                
-                <div class="mb-3">
-                    <h5>Beschrijving</h5>
-                    <div id="incidentDescription" class="p-3 bg-light rounded"></div>
-                </div>
+
+                    <div id="editActions" class="d-none mt-3">
+                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Annuleren</button>
+                        <button type="submit" class="btn btn-success">Opslaan</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -79,6 +124,9 @@
         window.location.href = 'incidents.html';
     }
 
+    let currentIncident = null;
+    let quill = null;
+
     async function loadIncidentDetail() {
         const loadingDiv = document.getElementById('loadingMessage');
         const errorDiv = document.getElementById('errorMessage');
@@ -86,7 +134,8 @@
 
         try {
             const incident = await API.call(`/incidents/${incidentUuid}`, 'GET');
-            
+            currentIncident = incident;
+
             loadingDiv.classList.add('d-none');
             detailDiv.classList.remove('d-none');
             
@@ -104,9 +153,16 @@
             
             const descriptionDiv = document.getElementById('incidentDescription');
             if (incident.description) {
-                descriptionDiv.textContent = incident.description;
+                descriptionDiv.innerHTML = incident.description;
             } else {
                 descriptionDiv.innerHTML = '<em class="text-muted">Geen beschrijving</em>';
+            }
+
+            // Show edit button if status is OPEN
+            if (incident.status === 'OPEN') {
+                document.getElementById('editBtn').classList.remove('d-none');
+            } else {
+                document.getElementById('editBtn').classList.add('d-none');
             }
             
         } catch (err) {
@@ -115,6 +171,88 @@
             errorDiv.classList.remove('d-none');
         }
     }
+
+    function enableEditMode() {
+        document.getElementById('editBtn').classList.add('d-none');
+        document.getElementById('priorityDisplay').classList.add('d-none');
+        document.getElementById('descriptionDisplay').classList.add('d-none');
+        document.getElementById('incidentTitle').classList.add('d-none'); // Hide title in header
+
+        document.getElementById('priorityEdit').classList.remove('d-none');
+        document.getElementById('descriptionEdit').classList.remove('d-none');
+        document.getElementById('titleEdit').classList.remove('d-none');
+        document.getElementById('editActions').classList.remove('d-none');
+
+        // Populate inputs
+        document.getElementById('titleInput').value = currentIncident.title;
+        document.getElementById('priorityInput').value = currentIncident.priority;
+
+        // Initialize Quill if not already done
+        if (!quill) {
+            quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'header': 1 }, { 'header': 2 }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        [{ 'direction': 'rtl' }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'font': [] }],
+                        [{ 'align': [] }],
+                        ['clean']
+                    ]
+                }
+            });
+        }
+
+        // Set Quill content
+        if (currentIncident.description) {
+            quill.root.innerHTML = currentIncident.description;
+        }
+    }
+
+    function cancelEdit() {
+        document.getElementById('editBtn').classList.remove('d-none');
+        document.getElementById('priorityDisplay').classList.remove('d-none');
+        document.getElementById('descriptionDisplay').classList.remove('d-none');
+        document.getElementById('incidentTitle').classList.remove('d-none');
+
+        document.getElementById('priorityEdit').classList.add('d-none');
+        document.getElementById('descriptionEdit').classList.add('d-none');
+        document.getElementById('titleEdit').classList.add('d-none');
+        document.getElementById('editActions').classList.add('d-none');
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.classList.add('d-none');
+
+        const updatedData = {
+            title: document.getElementById('titleInput').value,
+            priority: document.getElementById('priorityInput').value,
+            description: quill.root.innerHTML
+        };
+
+        try {
+            await API.call(`/incidents/${incidentUuid}`, 'PUT', updatedData);
+
+            // Reload details to show updated info and exit edit mode
+            await loadIncidentDetail();
+            cancelEdit();
+
+        } catch (err) {
+            errorDiv.textContent = 'Fout bij het bijwerken van incident: ' + err.message;
+            errorDiv.classList.remove('d-none');
+        }
+    });
 
     function getStatusBadge(status) {
         const statusMap = {
