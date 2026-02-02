@@ -37,41 +37,46 @@ export default function Login() {
   };
 
   return (
-    <div className="container">
-      <div className="row justify-content-center mt-5">
-        <div className="col-md-4">
-          <div className="card shadow">
-            <div className="card-header bg-primary text-white text-center">
-              <h4>Tixie</h4>
-            </div>
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Gebruikersnaam</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Wachtwoord</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary w-100">
-                  Inloggen
-                </button>
-              </form>
-              {error && <div className="alert alert-danger mt-3">{error}</div>}
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-blue-600 text-white text-center py-4">
+            <h2 className="text-xl font-semibold">Tixie</h2>
+          </div>
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gebruikersnaam</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Wachtwoord</label>
+                <input
+                  type="password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Inloggen
+              </button>
+            </form>
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>

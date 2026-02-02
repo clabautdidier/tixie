@@ -105,31 +105,32 @@ function LocationModal({ show, onHide, location, parentUuid, onSaved }) {
 
   if (!show) return null;
 
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+
   return (
-    <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <form onSubmit={handleSubmit}>
-            <div className="modal-header">
-              <h5 className="modal-title">Locatie Beheren</h5>
-              <button type="button" className="btn-close" onClick={onHide}></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onHide}>
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Locatie Beheren</h3>
+            <button type="button" className="text-gray-400 hover:text-gray-600 text-2xl" onClick={onHide}>×</button>
+          </div>
+          <div className="p-4 space-y-4 overflow-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Naam *</label>
+              <input
+                type="text"
+                className={inputClass}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
             </div>
-            <div className="modal-body">
-              <div className="mb-3">
-                <label className="form-label">Naam *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Type *</label>
-                <select
-                  id="locTypeSelect"
-                  className="form-select"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <select
+                id="locTypeSelect"
+                className={inputClass}
                   value={formData.typeUuid}
                   onChange={(e) => {
                     const typeUuid = e.target.value;
@@ -151,67 +152,38 @@ function LocationModal({ show, onHide, location, parentUuid, onSaved }) {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Parent Locatie</label>
-                <select
-                  id="locParentSelect"
-                  className="form-select"
-                  value={formData.parentUuid}
-                  onChange={(e) => setFormData({ ...formData, parentUuid: e.target.value })}
-                >
-                  <option value="">Geen (Hoofdniveau)</option>
-                </select>
-              </div>
-              <hr />
-              <div id="dynamicFieldsContainer">
-                {dynamicFields.length === 0 ? (
-                  <p className="text-muted small">Kies eerst een type om extra velden te zien.</p>
-                ) : (
-                  dynamicFields.map((f) => (
-                    <div key={f.propertyUuid} className="mb-3">
-                      <label className="form-label">
-                        {f.name} {f.required && <span className="text-danger">*</span>}
-                      </label>
-                      {f.dataType === 'BOOLEAN' ? (
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          data-uuid={f.propertyUuid}
-                          defaultChecked={f.value === 'true'}
-                        />
-                      ) : f.dataType === 'INTEGER' ? (
-                        <input
-                          type="number"
-                          className="form-control"
-                          data-uuid={f.propertyUuid}
-                          defaultValue={f.value}
-                          required={f.required}
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          className="form-control"
-                          data-uuid={f.propertyUuid}
-                          defaultValue={f.value}
-                          required={f.required}
-                        />
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onHide}>
-                Annuleren
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Opslaan
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Parent Locatie</label>
+              <select id="locParentSelect" className={inputClass} value={formData.parentUuid} onChange={(e) => setFormData({ ...formData, parentUuid: e.target.value })}>
+                <option value="">Geen (Hoofdniveau)</option>
+              </select>
             </div>
-          </form>
-        </div>
+            <hr />
+            <div>
+              {dynamicFields.length === 0 ? (
+                <p className="text-sm text-gray-500">Kies eerst een type om extra velden te zien.</p>
+              ) : (
+                dynamicFields.map((f) => (
+                  <div key={f.propertyUuid} className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{f.name} {f.required && <span className="text-red-500">*</span>}</label>
+                    {f.dataType === 'BOOLEAN' ? (
+                      <input type="checkbox" className="rounded" data-uuid={f.propertyUuid} defaultChecked={f.value === 'true'} />
+                    ) : f.dataType === 'INTEGER' ? (
+                      <input type="number" className={inputClass} data-uuid={f.propertyUuid} defaultValue={f.value} required={f.required} />
+                    ) : (
+                      <input type="text" className={inputClass} data-uuid={f.propertyUuid} defaultValue={f.value} required={f.required} />
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
+            <button type="button" className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300" onClick={onHide}>Annuleren</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Opslaan</button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -234,26 +206,18 @@ function filterTree(nodes, term) {
 function renderTreeNodes(nodes, onAddChild, onEdit) {
   if (!nodes?.length) return null;
   return (
-    <ul className="list-group list-group-flush ms-4 mt-2">
+    <ul className="ml-4 mt-2 space-y-1">
       {nodes.map((node) => (
-        <li key={node.uuid} className="list-group-item border-0 py-1">
-          <div className="tree-row">
-            <div className="tree-content">
-              <i className={`bi ${node.children?.length ? 'bi-chevron-down' : 'bi-dot'} me-2 text-muted`}></i>
-              <span className="fw-bold text-truncate">{node.name}</span>
-              <small className="badge bg-light text-dark ms-2 border">{node.locationTypeName}</small>
+        <li key={node.uuid} className="py-1">
+          <div className="flex justify-between items-center px-2 py-1 rounded hover:bg-gray-100 group">
+            <div className="flex items-center min-w-0">
+              <span className="text-gray-400 mr-2">{node.children?.length ? '▾' : '•'}</span>
+              <span className="font-medium truncate">{node.name}</span>
+              <span className="ml-2 inline-flex px-2 py-0.5 text-xs rounded border border-gray-300 bg-white text-gray-700">{node.locationTypeName}</span>
             </div>
-            <div className="tree-actions opacity-75">
-              <button
-                className="btn btn-sm btn-link text-success p-0"
-                onClick={() => onAddChild(node.uuid)}
-                title="Sublocatie toevoegen"
-              >
-                <i className="bi bi-plus-circle"></i>
-              </button>
-              <button className="btn btn-sm btn-link text-primary p-0" onClick={() => onEdit(node.uuid)} title="Bewerken">
-                <i className="bi bi-pencil-square"></i>
-              </button>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+              <button className="text-green-600 hover:text-green-700 p-1" onClick={() => onAddChild(node.uuid)} title="Sublocatie toevoegen">+</button>
+              <button className="text-blue-600 hover:text-blue-700 p-1" onClick={() => onEdit(node.uuid)} title="Bewerken">✎</button>
             </div>
           </div>
           {renderTreeNodes(node.children, onAddChild, onEdit)}
@@ -302,91 +266,61 @@ export default function Locations() {
 
   return (
     <>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Locations</h1>
-        <div className="d-flex gap-3">
-          <div className="btn-group">
-            <button
-              className={`btn btn-outline-primary ${view === 'table' ? 'active' : ''}`}
-              onClick={() => setView('table')}
-            >
-              <i className="bi bi-table"></i> Tabel
-            </button>
-            <button
-              className={`btn btn-outline-primary ${view === 'tree' ? 'active' : ''}`}
-              onClick={() => setView('tree')}
-            >
-              <i className="bi bi-tree-fill"></i> Boomstructuur
-            </button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Locations</h1>
+        <div className="flex gap-3">
+          <div className="flex rounded overflow-hidden border border-gray-300">
+            <button className={`px-4 py-2 text-sm ${view === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`} onClick={() => setView('table')}>Tabel</button>
+            <button className={`px-4 py-2 text-sm ${view === 'tree' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`} onClick={() => setView('tree')}>Boomstructuur</button>
           </div>
-          <button className="btn btn-primary" onClick={() => setModal({ show: true, location: null, parentUuid: null })}>
-            <i className="bi bi-plus-lg"></i> Locatie Toevoegen
-          </button>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onClick={() => setModal({ show: true, location: null, parentUuid: null })}>+ Locatie Toevoegen</button>
         </div>
       </div>
 
-      <div className="card mb-3 shadow-sm">
-        <div className="card-body">
-          <div className="row g-3">
-            <div className="col-md-8">
-              <div className="input-group">
-                <span className="input-group-text"><i className="bi bi-search"></i></span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Zoek op naam of type..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="col-md-4">
-              <select className="form-select" value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="name_asc">Naam (A-Z)</option>
-                <option value="name_desc">Naam (Z-A)</option>
-                <option value="type_asc">Type (A-Z)</option>
-              </select>
-            </div>
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 flex">
+            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">⌕</span>
+            <input type="text" className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Zoek op naam of type..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <select className="px-3 py-2 border border-gray-300 rounded-md" value={sort} onChange={e => setSort(e.target.value)}>
+            <option value="name_asc">Naam (A-Z)</option>
+            <option value="name_desc">Naam (Z-A)</option>
+            <option value="type_asc">Type (A-Z)</option>
+          </select>
         </div>
       </div>
 
       {view === 'table' && (
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th>Naam</th>
-                  <th>Type</th>
-                  <th>Parent</th>
-                  <th className="text-end">Acties</th>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sorted.map(l => (
+                <tr key={l.uuid} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-900">{l.name}</td>
+                  <td className="px-4 py-3"><span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-800">{l.typeName || 'N/A'}</span></td>
+                  <td className="px-4 py-3 text-gray-500">{l.parentName || '-'}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded hover:bg-blue-50" onClick={() => editLocation(l.uuid)}>Bewerken</button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sorted.map((l) => (
-                  <tr key={l.uuid}>
-                    <td><strong>{l.name}</strong></td>
-                    <td><span className="badge bg-secondary">{l.typeName || 'N/A'}</span></td>
-                    <td>{l.parentName || <span className="text-muted">-</span>}</td>
-                    <td className="text-end">
-                      <button className="btn btn-sm btn-outline-primary" onClick={() => editLocation(l.uuid)}>
-                        Bewerken
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       {view === 'tree' && (
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <div className="tree-container">{renderTreeNodes(filteredTree, openWithParent, editLocation)}</div>
-          </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          {renderTreeNodes(filteredTree, openWithParent, editLocation)}
         </div>
       )}
 

@@ -8,17 +8,20 @@ function TreeNode({ node, parentPath, onSelect }) {
 
   return (
     <li>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div className="flex items-center">
         <span
-          className={hasChildren ? `caret ${expanded ? 'caret-down' : ''}` : ''}
-          style={{ display: 'inline-block', width: 20, cursor: hasChildren ? 'pointer' : 'default' }}
+          className={`inline-block w-5 text-center ${hasChildren ? 'cursor-pointer select-none' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
             if (hasChildren) setExpanded((x) => !x);
           }}
-        />
+        >
+          {hasChildren && (
+            <span className={`inline-block transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
+          )}
+        </span>
         <span
-          className="node-content"
+          className="cursor-pointer px-1.5 py-0.5 rounded hover:bg-gray-100"
           onClick={(e) => {
             e.stopPropagation();
             onSelect(node, currentPath);
@@ -28,7 +31,7 @@ function TreeNode({ node, parentPath, onSelect }) {
         </span>
       </div>
       {hasChildren && (
-        <ul className={`nested ${expanded ? 'active' : ''}`} style={{ paddingLeft: 20, listStyle: 'none' }}>
+        <ul className={`pl-5 list-none ${expanded ? 'block' : 'hidden'}`}>
           {node.children.map((child) => (
             <TreeNode key={child.uuid} node={child} parentPath={currentPath} onSelect={onSelect} />
           ))}
@@ -60,26 +63,28 @@ export default function TreeSelectModal({ show, onHide, title, loadData, onSelec
   };
 
   return (
-    <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-dialog-scrollable">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">{title}</h5>
-            <button type="button" className="btn-close" onClick={onHide}></button>
-          </div>
-          <div className="modal-body">
-            <div className="tree-view">
-              {loading ? (
-                <span>Laden...</span>
-              ) : (
-                <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
-                  {nodes.map((node) => (
-                    <TreeNode key={node.uuid} node={node} onSelect={handleSelect} />
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <button
+            type="button"
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+            onClick={onHide}
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-4 overflow-auto flex-1">
+          {loading ? (
+            <span>Laden...</span>
+          ) : (
+            <ul className="list-none pl-0">
+              {nodes.map((node) => (
+                <TreeNode key={node.uuid} node={node} onSelect={handleSelect} />
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
